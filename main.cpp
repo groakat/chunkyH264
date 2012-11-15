@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
     /* Configure elements */
 
     // source element
-    g_object_set (pipeline.src, "device","/dev/video1", "auto-start", true, "initial-bitrate","6000000", "average-bitrate","6000000",/* "async-handling", true,*/ \
+    g_object_set (pipeline.src, "device","/dev/video1", "auto-start", true, "initial-bitrate","12000000", "average-bitrate","12000000", "peak-bitrate", "12000000",/* "async-handling", true,*/ \
                   /*"message-forward", true,*/ "usage-type", 1, "rate-control",1, /*"slice-units", 1,*/ "fixed-framerate", true,/* "num-reorder-frames", 0,*/ \
                   /*"entropy", 0,*/ NULL);
 
@@ -379,7 +379,12 @@ int main(int argc, char *argv[])
 
 
     /* Start playing the pipeline */
-//    int ret = gst_element_set_state (pipeline.bin, GST_STATE_READY);
+    gst_element_set_state (pipeline.bin, GST_STATE_READY);
+
+    g_object_set (pipeline.src, "average-bitrate","12000000", "peak-bitrate", "12000000", "rate-control", 1, "fixed-framerate", true, /*"max-iframe-qp", 0, "min-iframe-qp", 0, "min-pframe-qp", 0, "max-pframe-qp", 0, "min-bframe-qp", 0, "max-bframe-qp", 0,*/ NULL);
+
+    gst_element_set_state (pipeline.bin, GST_STATE_PAUSED);
+    g_object_set (pipeline.src, "average-bitrate","12000000", "peak-bitrate", "12000000", "rate-control", 1, "fixed-framerate", true, /*"max-iframe-qp", 0, "min-iframe-qp", 0, "min-pframe-qp", 0, "max-pframe-qp", 0, "min-bframe-qp", 0, "max-bframe-qp", 0,*/ NULL);
 
     /* start capturing the data */
 //    g_signal_emit_by_name (G_OBJECT (pipeline.src), "start-capture", NULL);
