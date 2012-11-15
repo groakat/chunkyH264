@@ -1,4 +1,5 @@
 #include <QtGui/QApplication>
+#include <QFile>
 #include "mainwindow.h"
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
@@ -21,6 +22,7 @@
 
 
 #include <unistd.h>
+#include <stdio.h>
 //#include <QGlib/Error>
 //#include <QGlib/Connect>
 //#include <QGst/Init>
@@ -262,19 +264,21 @@ int main(int argc, char *argv[])
     /* Configure elements */
 
     // source element
-    g_object_set (pipeline.src, "device","/dev/video1", "auto-start", true, "initial-bitrate","6000000", "average-bitrate","6000000", /*"rate-control","cbr",*/ NULL);
+    g_object_set (pipeline.src, "device","/dev/video1", "auto-start", true, "initial-bitrate","6000000", "average-bitrate","6000000",/* "async-handling", true,*/ \
+                  /*"message-forward", true,*/ "usage-type", 1, "rate-control",1, /*"slice-units", 1,*/ "fixed-framerate", true,/* "num-reorder-frames", 0,*/ \
+                  /*"entropy", 0,*/ NULL);
 
     // mp4mux elements
-//    g_object_set (pipeline.mp4mux0, "streamable", true, "dts-method",  2, "presentation-time", false, "trak-timescale", 1, NULL);
-//    g_object_set (pipeline.mp4mux1, "streamable", true, "dts-method",  2, "presentation-time", false, "trak-timescale", 1, NULL);
+    g_object_set (pipeline.mp4mux0, "streamable", true, "dts-method",  0, "presentation-time", false, "trak-timescale", 1000, NULL);
+    g_object_set (pipeline.mp4mux1, "streamable", true, "dts-method",  0, "presentation-time", false, "trak-timescale", 1000, NULL);
 
 
 //    // set caps
     GstCaps *h264_caps = NULL;
     GstCaps *raw_caps = NULL;
 
-    h264_caps = gst_caps_from_string ("video/x-h264,width=1920,height=1080,framerate=(fraction)30/1");
-    raw_caps = gst_caps_from_string ("video/x-raw-yuv,width=320,height=240,framerate=(fraction)30/1");
+    h264_caps = gst_caps_from_string ("video/x-h264,width=1920,height=1080,framerate=(fraction)30/1, profile=main");
+    raw_caps = gst_caps_from_string ("video/x-raw-yuv,width=320,height=240,framerate=30/1");
 
     g_object_set (pipeline.vid_capsfilter, "caps", h264_caps, NULL);
     g_object_set (pipeline.vf_capsfilter, "caps", raw_caps, NULL);
@@ -282,7 +286,7 @@ int main(int argc, char *argv[])
     // sinks
     g_object_set (pipeline.preview_sink, "async", false, NULL);
     g_object_set (pipeline.file_sink0, "location", "/home/peter/tmp/test0.h264", NULL);
-    g_object_set (pipeline.file_sink1, "location", "/home/peter/tmp/test1.h264", NULL);
+    g_object_set (pipeline.file_sink1, "location", "/home/peter/tmp/test1.h264", "sync", true, "async", false, NULL);
 
 
     /* Associate all elements with the pipeline */
@@ -294,17 +298,17 @@ int main(int argc, char *argv[])
 
     /* Manually link the source which has two ambiguous pads */
     GstPad *raw_sink_pad, *h264_sink_pad;
-    GstPad *queue_src_pad, *queue_preview_pad;
+    GstPad *caps_src_pad, *queue_preview_pad;
 
     raw_sink_pad = gst_element_get_static_pad(pipeline.src, "vfsrc");
     queue_preview_pad = gst_element_get_static_pad (pipeline.queue_preview, "sink");
 
     h264_sink_pad = gst_element_get_static_pad(pipeline.src, "vidsrc");
-    queue_src_pad = gst_element_get_static_pad (pipeline.queue_src, "sink");
+    caps_src_pad = gst_element_get_static_pad (pipeline.vid_capsfilter, "sink");
 
 
     if (    gst_pad_link (raw_sink_pad, queue_preview_pad) != GST_PAD_LINK_OK ||
-            gst_pad_link (h264_sink_pad, queue_src_pad) != GST_PAD_LINK_OK) {
+            gst_pad_link (h264_sink_pad, caps_src_pad) != GST_PAD_LINK_OK) {
         g_printerr ("Src could not be linked.\n");
         gst_object_unref (pipeline.bin);
         return -1;
@@ -337,7 +341,7 @@ int main(int argc, char *argv[])
 
 
     /* Link all elements that can be automatically linked because they have "Always" pads */
-    if (gst_element_link_many (pipeline.queue_src, pipeline.vid_capsfilter, pipeline.t, NULL) != TRUE ||
+    if (gst_element_link_many (/*pipeline.queue_src,*/ pipeline.vid_capsfilter, pipeline.t, NULL) != TRUE ||
         gst_element_link_many (pipeline.queue_0, pipeline.file_sink0, NULL) != TRUE ||
             gst_element_link_many (pipeline.queue_1, pipeline.file_sink1, NULL) != TRUE ||
             gst_element_link_many (pipeline.queue_preview, pipeline.vf_capsfilter, pipeline.preview_sink, NULL) != TRUE) {
@@ -360,7 +364,7 @@ int main(int argc, char *argv[])
 
 //    mp4mux1_src_pad_template = gst_element_class_get_pad_template (GST_ELEMENT_GET_CLASS (pipeline.mp4mux1), "video_%d");
 
-//    mp4mux_1_pad = gst_element_request_pad (pipeline.mp4mux1, mp4mux1_src_pad_template, NULL, gst_caps_from_string("width=1920,height=1080,framerate=30/1"));
+//    mp4mux_1_pad = gst_element_request_pad (pipeline.mp4mux1, mp4mux1_src_pad_template, NULL, gst_caps_from_string("video/x-h264,width=1920,height=1080,framerate=30/1"));
 //    g_print ("Obtained request mp4mux pad %s for 1 branch.\n", gst_pad_get_name (mp4mux_1_pad));
 //    queue_1_mp4mux_pad = gst_element_get_static_pad (pipeline.queue_1, "src");
 
@@ -383,6 +387,8 @@ int main(int argc, char *argv[])
     /* Start playing the pipeline */
      int ret = gst_element_set_state (pipeline.bin, GST_STATE_PLAYING);
 
+//     g_object_set (pipeline.src, "average-bitrate","6000000", "rate-control", 1, "fixed-framerate", true, /*"max-iframe-qp", 0, "min-iframe-qp", 0, "min-pframe-qp", 0, "max-pframe-qp", 0, "min-bframe-qp", 0, "max-bframe-qp", 0,*/ NULL);
+
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr ("Unable to set the pipeline to the playing state.\n");
         gst_object_unref (pipeline.bin);
@@ -400,14 +406,26 @@ int main(int argc, char *argv[])
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline.bin), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
 
-    sleep(10);
 
-    ret = gst_element_set_state (pipeline.file_sink1, GST_STATE_NULL);
+    // write standard header of h264 files
+    QFile newVid("/home/peter/tmp/newVid2.h264");
+    if (newVid.open(QFile::WriteOnly)) {
+        QDataStream txtStream(&newVid);
+//        txtStream.setIntegerBase(16);
+        QByteArray header = QByteArray::fromHex("0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588");
+
+        txtStream << header;//0x0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588; //header.data(); //0x00 << 0x00 << 0x00 << 0x01 << 0x67 << 0x64 << 0x00 << 0x28 << 0xAC << 0x76 << 0x80 << 0x78 << 0x02 << 0x27 << 0xE5 << 0xC0 << 0x51 << 0x20 << 0x00 << 0x00 << 0x03 << 0x00 << 0x20 << 0x00 << 0x00 << 0x07 << 0x8C << 0x08 << 0x00 << 0x02 << 0x02 << 0x2E << 0x00 << 0x08 << 0x08 << 0xB7 << 0xBD << 0xF0 << 0xBC << 0x22 << 0x11 << 0xA8 << 0x00 << 0x00 << 0x00 << 0x01 << 0x68 << 0xEE << 0x38 << 0xB0 << 0x00 << 0x00 << 0x00 << 0x01 << 0x65 << 0x88;
+        newVid.flush();
+        newVid.close();
+    }
+
+//    sleep(600);
+
+//    ret = gst_element_set_state (pipeline.file_sink1, GST_STATE_NULL);
 //    ret = gst_element_set_state (pipeline.queue_1, GST_STATE_NULL);
-    g_object_set(pipeline.file_sink1, "location", "/home/peter/tmp/newVid.h264", NULL);
+//    g_object_set(pipeline.file_sink1, "location", "/home/peter/tmp/newVid2.h264", "append", true, NULL);
 //    ret = gst_element_set_state (pipeline.queue_1, GST_STATE_PLAYING);
-    ret = gst_element_set_state (pipeline.file_sink1, GST_STATE_PLAYING);
-
+//    ret = gst_element_set_state (pipeline.file_sink1, GST_STATE_PLAYING);
 
 
     /* Wait until error or EOS */
@@ -454,7 +472,7 @@ int main(int argc, char *argv[])
     gst_object_unref (bus);
 
     /* stop capturing the data */
-    g_signal_emit_by_name (G_OBJECT (pipeline.src), "stop-capture", NULL);
+//    g_signal_emit_by_name (G_OBJECT (pipeline.src), "stop-capture", NULL);
     gst_element_set_state (pipeline.bin, GST_STATE_NULL);
 
     gst_object_unref (pipeline.bin);
