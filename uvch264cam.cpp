@@ -6,7 +6,7 @@ UVCH264Cam::UVCH264Cam()
 {
 //    Pipeline pipeline = Pipeline();
     this->bin = NULL;
-   this->keyFrameNumber = 0;
+   this->keyFrameNumber = 4294967293;
 }
 
 
@@ -153,8 +153,9 @@ int UVCH264Cam::changeLocationToCurrentTime()
     int ret = 0;
 
     if (this->bin != NULL){
-        GstClockTime gct = 100;
+        GstClockTime gct = 10;
         GstEvent* event =  gst_video_event_new_upstream_force_key_unit(gct, true, this->keyFrameNumber++);
+        qDebug() << this->keyFrameNumber;
         gst_element_send_event (this->bin, event);
 
         ret = gst_element_set_state (this->file_sink0, GST_STATE_NULL);
