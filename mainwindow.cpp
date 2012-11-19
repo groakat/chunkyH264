@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <stdlib.h> // Declare "system()"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -19,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->ethRelay = new EthRelay();
     this->ethRelay->connect();
 
+    this->process = new QProcess();
 
     ui->setupUi(this);
 }
@@ -76,4 +78,57 @@ void MainWindow::on_pushButton_clicked()
 
     this->cam->start();
 //    this->cam->startCamera("/dev/video1", this->baseDir);
+}
+
+void MainWindow::on_horizontalSlider_sliderMoved(int position)
+{
+}
+
+void MainWindow::on_checkBox_toggled(bool checked)
+{
+    qDebug() << "yeay";
+    if (checked){
+//        process->start
+        std::system("uvcdynctrl -d /dev/video1 -s \'Focus, auto\' true");
+    }else{
+        std::system("uvcdynctrl -d /dev/video1 -s \'Focus, auto\' false");
+    }
+}
+
+void MainWindow::on_lineEdit_2_editingFinished()
+{
+    QString cmd ="uvcdynctrl -d /dev/video1 -s \'Focus (absolute)\' " + ui->lineEdit_2->text();
+    system(cmd.toStdString().c_str());
+    ui->horizontalSlider->setSliderPosition(ui->lineEdit_2->text().toInt());
+}
+
+void MainWindow::on_horizontalSlider_valueChanged(int value)
+{
+    QString cmd = "uvcdynctrl -d /dev/video1 -s \'Focus (absolute)\' " + QString::number(value);
+    system(cmd.toStdString().c_str());
+    ui->lineEdit_2->setText( QString::number(value));
+}
+
+void MainWindow::on_horizontalSlider_2_valueChanged(int value)
+{
+    QString cmd = "uvcdynctrl -d /dev/video1 -s \'Gain\' " + QString::number(value);
+    system(cmd.toStdString().c_str());
+    ui->lineEdit_3->setText( QString::number(value));
+}
+
+void MainWindow::on_checkBox_2_toggled(bool checked)
+{
+    if (checked){
+        std::system("uvcdynctrl -d /dev/video1 -s \'Exposure, Auto\' true");
+    }else{
+        std::system("uvcdynctrl -d /dev/video1 -s \'Exposure, Auto\' false");
+    }
+
+}
+
+void MainWindow::on_horizontalSlider_3_valueChanged(int value)
+{
+    QString cmd = "uvcdynctrl -d /dev/video1 -s \'Exposure (Absolute)' " + QString::number(value);
+    system(cmd.toStdString().c_str());
+    ui->lineEdit_4->setText( QString::number(value));
 }
