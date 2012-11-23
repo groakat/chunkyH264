@@ -19,6 +19,8 @@ void EthRelay::connect()
     if (this->socket.waitForConnected(1000)){
         qDebug() << "connected to relay " << this->address << ":" << this->port;
         this->isConnected = true;
+    }else{
+        qDebug() << "could not connect to relay";
     }
 }
 

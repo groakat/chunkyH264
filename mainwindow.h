@@ -23,6 +23,10 @@ public:
     
     void updateLight();
 
+    void newCamera();
+
+    void restartCamera();
+
 
 private slots:
     void on_pushButton_2_clicked();
@@ -44,6 +48,31 @@ private slots:
 
     void on_horizontalSlider_3_valueChanged(int value);
 
+    void on_lineEdit_6_editingFinished();
+
+    void on_pushButton_5_clicked();
+
+    void on_checkBox_3_toggled(bool checked);
+
+    void on_pushButton_6_clicked();
+
+    void on_pushButton_3_clicked(bool checked);
+
+    void on_pushButton_4_clicked(bool checked);
+
+    void on_checkBox_4_toggled(bool checked);
+
+public slots:
+    void deleteCam();
+
+    void setDay();
+    void setNight();
+
+    void switchLightOn();
+    void switchLightOff();
+
+    void sendSystemCmd(QString cmd);
+
 private:
     Ui::MainWindow *ui;
     UVCH264Cam* cam;
@@ -51,6 +80,7 @@ private:
     QTimer* timer;
     QString baseDir;
     QProcess* process;
+    bool isCameraRestart;
 };
 
 #endif // MAINWINDOW_H

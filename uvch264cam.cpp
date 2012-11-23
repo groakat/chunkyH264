@@ -6,7 +6,10 @@ UVCH264Cam::UVCH264Cam()
 {
 //    Pipeline pipeline = Pipeline();
     this->bin = NULL;
-   this->keyFrameNumber = 4294967293;
+   this->keyFrameNumber = 0;
+    this->location = "";
+    this->basedir = "";
+    msg == NULL;
 }
 
 
@@ -14,28 +17,35 @@ void UVCH264Cam::run()
 {
     QString filename = updateCurrentFilename();
 
+
     gst_init(0,NULL);
 
-    const QString launcher = "uvch264_src device=" + this->device + " name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! filesink name=file_sink0 location=" + filename;
+    const QString launcher = "uvch264_src device=" + this->device + " name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! video/x-h264,width=1920,height=1080,framerate=30/1 ! queue name=queue_0 ! filesink name=file_sink0 location=" + filename;
     this->bin = gst_parse_launch (launcher.toLatin1(), NULL);
 //    this->bin = gst_parse_launch("uvch264_src device=" + device + "name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! filesink name=file_sink0 location=" + filename;)
 
 
     this->file_sink0 = gst_bin_get_by_name (GST_BIN (this->bin), "file_sink0");
     this->src = gst_bin_get_by_name (GST_BIN (this->bin), "src");
+    this->queue_0 = gst_bin_get_by_name (GST_BIN (this->bin), "queue_0");
+
+//    g_object_set(this->queue_0, "max-size-bytes", 4294967295, NULL);
 
     int ret = gst_element_set_state (this->bin, GST_STATE_PLAYING);
+
+    qDebug() << QDateTime::currentMSecsSinceEpoch();
 
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr ("Unable to set the pipeline to the playing state.\n");
         gst_object_unref (this->bin);
         gst_object_unref (this->src);
-        gst_object_unref (this->identity);
+//        gst_object_unref (this->identity);
         gst_object_unref (this->file_sink0);
-        gst_object_unref (this->file_sink1);
-        gst_object_unref (this->t);
-        gst_object_unref (this->vid_capsfilter);
-        gst_object_unref (this->vf_capsfilter);
+        gst_object_unref (this->queue_0);
+//        gst_object_unref (this->file_sink1);
+//        gst_object_unref (this->t);
+//        gst_object_unref (this->vid_capsfilter);
+//        gst_object_unref (this->vf_capsfilter);
 //        return -1;
       }
 
@@ -118,12 +128,65 @@ int UVCH264Cam::changeBaseDir(QString baseDir)
 
 int UVCH264Cam::changeDevice(QString device)
 {
-    this->device = device;
+    if (this->bin){
+        /* stop capturing the data */
+        gst_element_set_state (this->bin, GST_STATE_NULL);
+
+        /* Free resources */
+        if (msg != NULL)
+//         gst_message_unref (msg);
+        gst_object_unref (bus);
+
+        gst_object_unref (this->bin);
+
+        this->exit();
+
+        this->device = device;
+
+        this->start();
+    }else{
+        this->device = device;
+    }
 }
 
 QString UVCH264Cam::getLocation()
 {
     return this->location;
+}
+
+int UVCH264Cam::switchReview(bool toogle)
+{
+    if(this->bin){
+        if (toogle){
+            gst_element_unlink(this->queue_0, this->file_sink0);
+        }else{
+            gst_element_link(this->queue_0, this->file_sink0);
+        }
+    }
+}
+
+int UVCH264Cam::disconnect()
+{
+    if (this->bin){
+        /* stop capturing the data */
+        gst_element_set_state (this->bin, GST_STATE_NULL);
+
+        /* Free resources */
+        if (msg != NULL)
+//             gst_message_unref (msg);
+
+        gst_object_unref (bus);
+
+        gst_object_unref (this->bin);
+
+        gst_object_unref (this->src);
+        gst_object_unref (this->file_sink0);
+        gst_object_unref (this->queue_0);
+
+        qDebug() << "disconnect!!!!";
+
+        this->quit();
+    }
 }
 
 int UVCH264Cam::changeLocationToCurrentTime(QString baseDir)
@@ -163,7 +226,10 @@ int UVCH264Cam::changeLocationToCurrentTime()
         std::string path = location.toStdString();
         qDebug() << "location.data() " << path.c_str() ;
         g_object_set(this->file_sink0, "location", path.c_str(), "append", true, NULL);
+        gint bufferStatus = 100;
         ret = gst_element_set_state (this->file_sink0, GST_STATE_PLAYING);
+        g_object_get(this->queue_0, "current-level-bytes", &bufferStatus, NULL);
+        qDebug() << bufferStatus <<  (bufferStatus / 4294967295.0f);
     }
 
     return ret;

@@ -18,9 +18,9 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>30</y>
+      <y>20</y>
       <width>221</width>
-      <height>171</height>
+      <height>221</height>
      </rect>
     </property>
     <property name="title">
@@ -32,7 +32,7 @@
        <x>50</x>
        <y>30</y>
        <width>110</width>
-       <height>27</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -43,9 +43,9 @@
      <property name="geometry">
       <rect>
        <x>40</x>
-       <y>80</y>
+       <y>90</y>
        <width>141</width>
-       <height>27</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -62,7 +62,46 @@
       </rect>
      </property>
      <property name="text">
-      <string>/home/peter/vid/</string>
+      <string>/mnt/raid/box0/</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_6">
+     <property name="geometry">
+      <rect>
+       <x>50</x>
+       <y>150</y>
+       <width>113</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>/dev/video0</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_5">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>60</y>
+       <width>95</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Disconnect</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_6">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>180</y>
+       <width>95</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>restart</string>
      </property>
     </widget>
    </widget>
@@ -70,9 +109,9 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>210</y>
+      <y>260</y>
       <width>221</width>
-      <height>131</height>
+      <height>91</height>
      </rect>
     </property>
     <property name="title">
@@ -81,7 +120,7 @@
     <widget class="QPushButton" name="pushButton_3">
      <property name="geometry">
       <rect>
-       <x>70</x>
+       <x>0</x>
        <y>40</y>
        <width>110</width>
        <height>27</height>
@@ -94,14 +133,27 @@
     <widget class="QPushButton" name="pushButton_4">
      <property name="geometry">
       <rect>
-       <x>70</x>
-       <y>80</y>
+       <x>110</x>
+       <y>40</y>
        <width>110</width>
        <height>27</height>
       </rect>
      </property>
      <property name="text">
       <string>night</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_4">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>10</y>
+       <width>93</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>on</string>
      </property>
     </widget>
    </widget>
@@ -111,7 +163,7 @@
       <x>300</x>
       <y>20</y>
       <width>601</width>
-      <height>321</height>
+      <height>191</height>
      </rect>
     </property>
     <property name="title">
@@ -141,6 +193,9 @@
        <width>291</width>
        <height>23</height>
       </rect>
+     </property>
+     <property name="maximum">
+      <number>200</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -255,6 +310,22 @@
      </property>
     </widget>
    </widget>
+   <widget class="QCheckBox" name="checkBox_3">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>260</y>
+      <width>93</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>preview</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -262,7 +333,7 @@
      <x>0</x>
      <y>0</y>
      <width>946</width>
-     <height>24</height>
+     <height>29</height>
     </rect>
    </property>
   </widget>

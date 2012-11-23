@@ -30,9 +30,14 @@ public:
 
     QString getLocation();
 
+
+
 public slots:
     int changeLocationToCurrentTime(QString baseDir);
     int changeLocationToCurrentTime();
+    int switchReview(bool toogle);
+    int disconnect();
+
 
 private:
     QString updateCurrentFilename();
