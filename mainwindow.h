@@ -73,6 +73,8 @@ public slots:
 
     void sendSystemCmd(QString cmd);
 
+    void checkProgress(QString oldLocation);
+
 private:
     Ui::MainWindow *ui;
     UVCH264Cam* cam;
@@ -81,6 +83,7 @@ private:
     QString baseDir;
     QProcess* process;
     bool isCameraRestart;
+    QString location;
 };
 
 #endif // MAINWINDOW_H

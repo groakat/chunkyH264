@@ -2,7 +2,7 @@
 #include <iostream>
 #include <gst/video/video.h>
 
-UVCH264Cam::UVCH264Cam()
+UVCH264Cam::UVCH264Cam(QObject *parent = 0) : QThread(parent)
 {
 //    Pipeline pipeline = Pipeline();
     this->bin = NULL;
@@ -188,15 +188,16 @@ int UVCH264Cam::disconnect()
     this->quit();
 }
 
-int UVCH264Cam::changeLocationToCurrentTime(QString baseDir)
+QString UVCH264Cam::changeLocationToCurrentTime(QString baseDir)
 {
     this->changeBaseDir(baseDir);
 
     return changeLocationToCurrentTime();
 }
 
-int UVCH264Cam::changeLocationToCurrentTime()
+QString UVCH264Cam::changeLocationToCurrentTime()
 {
+    QString oldLocation = this->location;
     QString location = updateCurrentFilename();
     qDebug() << location;
 
@@ -231,7 +232,14 @@ int UVCH264Cam::changeLocationToCurrentTime()
         qDebug() << bufferStatus <<  (bufferStatus / 4294967295.0f);
     }
 
-    return ret;
+    emit this->changedLocation(oldLocation);
+
+    if (!ret){
+        return location;
+    }else{
+        return NULL;
+    }
+//    return ret;
 }
 
 QString UVCH264Cam::updateCurrentFilename()

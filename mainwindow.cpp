@@ -8,7 +8,6 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
 
-    this->baseDir = "/mnt/raid/box0/";
 
     this->cam = NULL;
 
@@ -23,6 +22,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     ui->setupUi(this);
+
+    this->baseDir = ui->lineEdit->text(); //"/mnt/raid/box0/";
+
 }
 
 MainWindow::~MainWindow()
@@ -47,7 +49,7 @@ void MainWindow::updateLight()
 void MainWindow::newCamera()
 {
     if(!this->cam){
-        this->cam = new UVCH264Cam();
+        this->cam = new UVCH264Cam(this);
         this->cam->changeBaseDir(this->ui->lineEdit->text());
         this->cam->changeDevice(this->ui->lineEdit_6->text());
         this->cam->start();
@@ -55,6 +57,8 @@ void MainWindow::newCamera()
         timer->start(60000 - (dt.time().second()*1000 + dt.time().msec()));
         connect(this->cam, SIGNAL(finished()), this->cam, SLOT(deleteLater()));
         connect(this->cam, SIGNAL(finished()), this, SLOT(deleteCam()));
+        connect(this->cam, SIGNAL(changedLocation(QString)), this, SLOT(checkProgress(QString)));
+        this->location = this->cam->getLocation();
 //        connect(this->cam, SIGNAL(terminated()), this, SLOT(deleteCam()));
         qDebug() << "MainWindow::newCamera()" << QDateTime::currentMSecsSinceEpoch();
     }
@@ -71,19 +75,26 @@ void MainWindow::restartCamera()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    this->cam->changeLocationToCurrentTime(this->baseDir);
+    this->location = this->cam->changeLocationToCurrentTime(this->baseDir);
 }
 
 void MainWindow::updateFile()
 {
-    QString oldLocation = this->cam->getLocation();
-
     timer->start(60000);
 
     if(QTime::currentTime().minute() == 0){
+        QFile log(this->baseDir + "/log.txt");
+        if(log.open(QFile::ReadWrite| QFile::Text | QFile::Append)){
+            QTextStream ts(&log);
+            ts << QDateTime::currentDateTime().toString(Qt::ISODate) << " restrart camera. reason: scheduled\n";
+            qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate) << "restrart camera. reason: scheduled";
+            log.close();
+        }else{
+            qDebug() << log.errorString();
+        }
         restartCamera();
     }else{
-        this->cam->changeLocationToCurrentTime();
+        this->location = this->cam->changeLocationToCurrentTime();
     }
     updateLight();
 
@@ -107,6 +118,18 @@ void MainWindow::on_pushButton_clicked()
 {
 //    this->cam->startCamera("/dev/video1", this->baseDir);
 //    updateLight();
+
+    QFile log(this->baseDir + "/log.txt");
+    if(log.open(QFile::ReadWrite| QFile::Text | QFile::Append)){
+        QTextStream ts(&log);
+        //      -------------- program start 1997-07-16T19:20:30+01:00 --------------
+        ts << " -------------- program start " << QDateTime::currentDateTime().toString(Qt::ISODate) << " -------------- \n";
+        ts << " --------------------------------------------------------------------- \n";
+        log.close();
+    }else{
+        qDebug() << log.errorString();
+    }
+
     newCamera();
     updateLight();
 }
@@ -266,6 +289,24 @@ void MainWindow::switchLightOff()
 void MainWindow::sendSystemCmd(QString cmd)
 {
     std::system(cmd.toStdString().c_str());
+}
+
+void MainWindow::checkProgress(QString oldLocation)
+{
+    qDebug() << "MainWindow::checkProgress";
+    QFileInfo oldFile(oldLocation);        //(this->location);
+    if (oldFile.size() == 0){
+        QFile log(this->baseDir + "/log.txt");
+        if(log.open(QFile::ReadWrite | QFile::Text | QFile::Append)){
+            QTextStream ts(&log);
+            ts << QDateTime::currentDateTime().toString(Qt::ISODate) << " restrart camera. reason: faulty pipeline\n";
+            qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate) << "restrart camera. reason: faulty pipeline";
+            log.close();
+        }else{
+            qDebug() << log.errorString();
+        }
+        restartCamera();
+    }
 }
 
 void MainWindow::on_checkBox_4_toggled(bool checked)

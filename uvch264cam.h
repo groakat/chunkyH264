@@ -17,8 +17,10 @@
 
 class UVCH264Cam : public QThread
 {
+    Q_OBJECT
+
 public:
-    UVCH264Cam();
+    UVCH264Cam(QObject *parent);
     ~UVCH264Cam();
 
     void run();
@@ -34,10 +36,13 @@ public:
 
 
 public slots:
-    int changeLocationToCurrentTime(QString baseDir);
-    int changeLocationToCurrentTime();
+    QString changeLocationToCurrentTime(QString baseDir);
+    QString changeLocationToCurrentTime();
     int switchReview(bool toogle);
     int disconnect();
+
+signals:
+    void changedLocation(QString oldLocation);
 
 
 private:

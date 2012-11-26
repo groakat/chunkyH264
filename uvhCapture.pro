@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network
+QT       += core thread gui network
 
 TARGET = uvhCapture
 TEMPLATE = app
