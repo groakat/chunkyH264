@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+    this->cam->disconnect();
 }
 
 void MainWindow::updateLight()
@@ -50,7 +51,8 @@ void MainWindow::newCamera()
         this->cam->changeBaseDir(this->ui->lineEdit->text());
         this->cam->changeDevice(this->ui->lineEdit_6->text());
         this->cam->start();
-        timer->start(60000);
+        QDateTime dt = QDateTime::currentDateTime();
+        timer->start(60000 - (dt.time().second()*1000 + dt.time().msec()));
         connect(this->cam, SIGNAL(finished()), this->cam, SLOT(deleteLater()));
         connect(this->cam, SIGNAL(finished()), this, SLOT(deleteCam()));
 //        connect(this->cam, SIGNAL(terminated()), this, SLOT(deleteCam()));
@@ -78,7 +80,7 @@ void MainWindow::updateFile()
 
     timer->start(60000);
 
-    if((QTime::currentTime().minute() % 2) == 0){
+    if(QTime::currentTime().minute() == 0){
         restartCamera();
     }else{
         this->cam->changeLocationToCurrentTime();

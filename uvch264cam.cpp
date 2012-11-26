@@ -60,8 +60,6 @@ void UVCH264Cam::run()
 
     int ret = gst_element_set_state (this->bin, GST_STATE_PLAYING);
 
-    qDebug() << QDateTime::currentMSecsSinceEpoch();
-
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr ("Unable to set the pipeline to the playing state.\n");
         gst_object_unref (this->bin);
