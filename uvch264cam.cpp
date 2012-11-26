@@ -12,6 +12,32 @@ UVCH264Cam::UVCH264Cam()
     msg == NULL;
 }
 
+UVCH264Cam::~UVCH264Cam()
+{
+    if (this->bin){
+        /* stop capturing the data */
+        gst_element_set_state (this->bin, GST_STATE_NULL);
+
+        /* Free resources */
+//        if (msg != NULL)
+//             gst_message_unref (msg);
+
+        gst_object_unref (bus);
+
+        gst_object_unref (this->bin);
+
+        gst_object_unref (this->src);
+        gst_object_unref (this->file_sink0);
+        gst_object_unref (this->queue_0);
+
+        qDebug() << "disconnect!!!!";
+
+        this->terminate();
+    }
+}
+
+
+
 
 void UVCH264Cam::run()
 {
@@ -29,7 +55,8 @@ void UVCH264Cam::run()
     this->src = gst_bin_get_by_name (GST_BIN (this->bin), "src");
     this->queue_0 = gst_bin_get_by_name (GST_BIN (this->bin), "queue_0");
 
-//    g_object_set(this->queue_0, "max-size-bytes", 4294967295, NULL);
+    //    g_object_set(this->queue_0, "max-size-bytes", 4294967295, NULL);
+        g_object_set(this->file_sink0, /*"async", false,*/ NULL);
 
     int ret = gst_element_set_state (this->bin, GST_STATE_PLAYING);
 
@@ -51,71 +78,43 @@ void UVCH264Cam::run()
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(this->bin), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
 
+    msg = NULL;
     /* Wait until error or EOS */
     bus = gst_element_get_bus (this->bin);
-    msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, GstMessageType(GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
+//    msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, GstMessageType(GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
+    gst_bus_set_sync_handler (bus, (GstBusSyncHandler) gstPipelineHandler, this->bin);
 
 
-    /* Parse message */
-     if (msg != NULL) {
-       GError *err;
-       gchar *debug_info;
+    qDebug() << "UVCH264Cam::run() finished "<< QDateTime::currentMSecsSinceEpoch();
+    exec();
 
-       switch (GST_MESSAGE_TYPE (msg)) {
-         case GST_MESSAGE_ERROR:
-           gst_message_parse_error (msg, &err, &debug_info);
-           g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
-           g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
-           g_clear_error (&err);
-           g_free (debug_info);
-           break;
-         case GST_MESSAGE_EOS:
-           g_print ("End-Of-Stream reached.\n");
-           break;
-         case GST_MESSAGE_STATE_CHANGED:
-           /* We are only interested in state-changed messages from the pipeline */
-           if (GST_MESSAGE_SRC (msg) == GST_OBJECT (bin)) {
-             GstState old_state, new_state, pending_state;
-             gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
-             g_print ("Pipeline state changed from %s to %s:\n",
-                 gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
-           }
-         default:
-           /* We should not reach here because we only asked for ERRORs and EOS */
-           g_printerr ("Unexpected message received.\n");
-           break;
-       }
+//    /* Free resources */
+//    if (msg != NULL)
+//      gst_message_unref (msg);
+//    gst_object_unref (bus);
 
-       gst_message_unref (msg);
-     }
+//    /* stop capturing the data */
+//    gst_element_set_state (this->bin, GST_STATE_NULL);
 
-    /* Free resources */
-    if (msg != NULL)
-      gst_message_unref (msg);
-    gst_object_unref (bus);
-
-    /* stop capturing the data */
-    gst_element_set_state (this->bin, GST_STATE_NULL);
-
-    gst_object_unref (this->bin);
-//    return 0;
+//    gst_object_unref (this->bin);
+////    return 0;
 }
 
 int UVCH264Cam::changeLocation(QString filename)
 {
     // write standard header of h264 files
-    QFile newVid(filename);
+//    QFile newVid(filename);
 
-    if (newVid.open(QFile::WriteOnly)) {
-        QDataStream txtStream(&newVid);
-        QByteArray header = QByteArray::fromHex("0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588");
+//    if (newVid.open(QFile::WriteOnly)) {
+//        QDataStream txtStream(&newVid);
+//        QByteArray header = QByteArray::fromHex("0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588");
 
-        txtStream << header;
-        newVid.flush();
-        newVid.close();
-    }
+//        txtStream << header;
+//        newVid.flush();
+//        newVid.close();
+//    }
     int ret = gst_element_set_state (this->file_sink0, GST_STATE_NULL);
-    g_object_set(this->file_sink0, "location", filename.data(), "append", true, NULL);
+    g_object_set(this->file_sink0, "location", filename.data(), /*"append", true,*/ NULL);
     ret = gst_element_set_state (this->file_sink0, GST_STATE_PLAYING);
 
     return ret;
@@ -133,8 +132,10 @@ int UVCH264Cam::changeDevice(QString device)
         gst_element_set_state (this->bin, GST_STATE_NULL);
 
         /* Free resources */
-        if (msg != NULL)
+//        if (msg != NULL)
 //         gst_message_unref (msg);
+
+
         gst_object_unref (bus);
 
         gst_object_unref (this->bin);
@@ -167,26 +168,26 @@ int UVCH264Cam::switchReview(bool toogle)
 
 int UVCH264Cam::disconnect()
 {
-    if (this->bin){
-        /* stop capturing the data */
-        gst_element_set_state (this->bin, GST_STATE_NULL);
+//    if (this->bin){
+//        /* stop capturing the data */
+//        gst_element_set_state (this->bin, GST_STATE_NULL);
 
-        /* Free resources */
-        if (msg != NULL)
-//             gst_message_unref (msg);
+//        /* Free resources */
+////        if (msg != NULL)
+////             gst_message_unref (msg);
 
-        gst_object_unref (bus);
+//        gst_object_unref (bus);
 
-        gst_object_unref (this->bin);
+//        gst_object_unref (this->bin);
 
-        gst_object_unref (this->src);
-        gst_object_unref (this->file_sink0);
-        gst_object_unref (this->queue_0);
+//        gst_object_unref (this->src);
+//        gst_object_unref (this->file_sink0);
+//        gst_object_unref (this->queue_0);
 
-        qDebug() << "disconnect!!!!";
+//        qDebug() << "disconnect!!!!" << this->bin;
 
-        this->quit();
-    }
+//    }
+    this->quit();
 }
 
 int UVCH264Cam::changeLocationToCurrentTime(QString baseDir)
@@ -204,14 +205,14 @@ int UVCH264Cam::changeLocationToCurrentTime()
     // write standard header of h264 files
     QFile newVid(location);
 
-    if (newVid.open(QFile::WriteOnly)) {
-        QDataStream txtStream(&newVid);
-        QByteArray header = QByteArray::fromHex("0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588");
+//    if (newVid.open(QFile::WriteOnly)) {
+//        QDataStream txtStream(&newVid);
+//        QByteArray header = QByteArray::fromHex("0000000167640028AC7680780227E5C0512000000300200000078C080002022E000808B7BDF0BC2211A80000000168EE38B0000000016588");
 
-        txtStream << header;
-        newVid.flush();
-        newVid.close();
-    }
+//        txtStream << header;
+//        newVid.flush();
+//        newVid.close();
+//    }
 
     int ret = 0;
 
@@ -225,7 +226,7 @@ int UVCH264Cam::changeLocationToCurrentTime()
 //        QChar* path = location.data();
         std::string path = location.toStdString();
         qDebug() << "location.data() " << path.c_str() ;
-        g_object_set(this->file_sink0, "location", path.c_str(), "append", true, NULL);
+        g_object_set(this->file_sink0, "location", path.c_str(), /*"append", true, */NULL);
         gint bufferStatus = 100;
         ret = gst_element_set_state (this->file_sink0, GST_STATE_PLAYING);
         g_object_get(this->queue_0, "current-level-bytes", &bufferStatus, NULL);
@@ -255,4 +256,41 @@ QString UVCH264Cam::updateCurrentFilename()
 
     return this->location;
 
+}
+
+GstBusSyncReply UVCH264Cam::gstPipelineHandler(GstBus *bus, GstMessage *msg, GstPipeline *bin)
+{
+    /* Parse message */
+     if (msg != NULL) {
+       GError *err;
+       gchar *debug_info;
+
+       switch (GST_MESSAGE_TYPE (msg)) {
+         case GST_MESSAGE_ERROR:
+           gst_message_parse_error (msg, &err, &debug_info);
+           g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+           g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
+           g_clear_error (&err);
+           g_free (debug_info);
+           break;
+         case GST_MESSAGE_EOS:
+           g_print ("End-Of-Stream reached.\n");
+           break;
+         case GST_MESSAGE_STATE_CHANGED:
+           /* We are only interested in state-changed messages from the pipeline */
+           if (GST_MESSAGE_SRC (msg) == GST_OBJECT (bin)) {
+             GstState old_state, new_state, pending_state;
+             gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
+             g_print ("Pipeline state changed from %s to %s:\n",
+                 gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+           }
+         default:
+           /* We should not reach here because we only asked for ERRORs and EOS */
+//           g_printerr ("Unexpected message received.\n");
+           break;
+       }
+
+       gst_message_unref (msg);
+     }
+     return GST_BUS_DROP;
 }

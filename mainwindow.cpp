@@ -52,16 +52,19 @@ void MainWindow::newCamera()
         this->cam->start();
         timer->start(60000);
         connect(this->cam, SIGNAL(finished()), this->cam, SLOT(deleteLater()));
-        qDebug() << "new camera";
+        connect(this->cam, SIGNAL(finished()), this, SLOT(deleteCam()));
+//        connect(this->cam, SIGNAL(terminated()), this, SLOT(deleteCam()));
+        qDebug() << "MainWindow::newCamera()" << QDateTime::currentMSecsSinceEpoch();
     }
 }
 
 void MainWindow::restartCamera()
 {
-    this->cam->disconnect();
+    qDebug() << "MainWindow::restartCamera() " << QDateTime::currentMSecsSinceEpoch();
     this->isCameraRestart = true;
+    this->cam->disconnect();
 //    this->cam = NULL;
-    deleteCam();
+//    deleteCam();
 }
 
 void MainWindow::on_pushButton_2_clicked()
@@ -75,7 +78,7 @@ void MainWindow::updateFile()
 
     timer->start(60000);
 
-    if(QTime::currentTime().minute() == 47){
+    if((QTime::currentTime().minute() % 2) == 0){
         restartCamera();
     }else{
         this->cam->changeLocationToCurrentTime();

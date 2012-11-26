@@ -19,6 +19,7 @@ class UVCH264Cam : public QThread
 {
 public:
     UVCH264Cam();
+    ~UVCH264Cam();
 
     void run();
 
@@ -41,6 +42,8 @@ public slots:
 
 private:
     QString updateCurrentFilename();
+
+    static GstBusSyncReply gstPipelineHandler(GstBus * bus, GstMessage * msg, GstPipeline * bin);
 
     GstElement *bin;
     GstElement *src;

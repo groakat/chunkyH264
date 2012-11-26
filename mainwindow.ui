@@ -62,7 +62,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>/mnt/raid/box0/</string>
+      <string>/home/peter/vid/</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="lineEdit_6">
@@ -75,7 +75,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>/dev/video0</string>
+      <string>/dev/video1</string>
      </property>
     </widget>
     <widget class="QPushButton" name="pushButton_5">
@@ -333,7 +333,7 @@
      <x>0</x>
      <y>0</y>
      <width>946</width>
-     <height>29</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
