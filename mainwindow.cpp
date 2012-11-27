@@ -37,7 +37,7 @@ void MainWindow::updateLight()
 {
     switchLightOn();
     QTime time = QTime::currentTime();
-    if(time.hour() < 10 || time.hour() > 44){
+    if(time.hour() < 10 || time.hour() > 22){
         // night
         setNight();
     }else{
@@ -82,20 +82,20 @@ void MainWindow::updateFile()
 {
     timer->start(60000);
 
-    if(QTime::currentTime().minute() == 0){
-        QFile log(this->baseDir + "/log.txt");
-        if(log.open(QFile::ReadWrite| QFile::Text | QFile::Append)){
-            QTextStream ts(&log);
-            ts << QDateTime::currentDateTime().toString(Qt::ISODate) << " restrart camera. reason: scheduled\n";
-            qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate) << "restrart camera. reason: scheduled";
-            log.close();
-        }else{
-            qDebug() << log.errorString();
-        }
-        restartCamera();
-    }else{
+//    if(QTime::currentTime().minute() == 0){
+//        QFile log(this->baseDir + "/log.txt");
+//        if(log.open(QFile::ReadWrite| QFile::Text | QFile::Append)){
+//            QTextStream ts(&log);
+//            ts << QDateTime::currentDateTime().toString(Qt::ISODate) << " restrart camera. reason: scheduled\n";
+//            qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate) << "restrart camera. reason: scheduled";
+//            log.close();
+//        }else{
+//            qDebug() << log.errorString();
+//        }
+//        restartCamera();
+//    }else{
         this->location = this->cam->changeLocationToCurrentTime();
-    }
+//    }
     updateLight();
 
 //    // add header
