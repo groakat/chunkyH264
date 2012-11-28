@@ -200,6 +200,7 @@ void MainWindow::on_lineEdit_6_editingFinished()
 
 void MainWindow::on_pushButton_5_clicked()
 {
+    this->isCameraRestart = false;
     this->cam->disconnect();
 //    this->cam->wait();
 //    if(this->cam->isFinished()){

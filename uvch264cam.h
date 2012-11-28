@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QThread>
+#include <QCoreApplication>
 
 #include <gst/gst.h>
 #include <gst/video/video.h>
@@ -47,8 +48,11 @@ signals:
 
 private:
     QString updateCurrentFilename();
+    void updateFilesink();
 
-    static GstBusSyncReply gstPipelineHandler(GstBus * bus, GstMessage * msg, GstPipeline * bin);
+    static GstBusSyncReply gstPipelineHandler(GstBus * bus, GstMessage * msg, UVCH264Cam* cam);
+    static GstBusSyncReply gstQueueHandler(GstBus * bus, GstMessage * msg, UVCH264Cam* cam);
+    static void handle_block_location(GstPad* pad, gboolean blocked, gpointer user_data);
 
     GstElement *bin;
     GstElement *src;
@@ -60,6 +64,8 @@ private:
     GstElement *mp4mux1;
     GstElement *queue_0;
     GstElement *queue_1;
+    GstElement *valve_0;
+    GstElement *ph264;
     GstElement *t;
     GstElement *vid_capsfilter;
     GstElement *vf_capsfilter;
@@ -67,13 +73,17 @@ private:
     GstElement *queue_preview;
 
     GstBus *bus;
+    GstBus *busQueue_0;
     GstMessage *msg;
 
     QString basedir;
     QString device;
     QString location;
+    QString oldLocation;
 
     unsigned int keyFrameNumber;
+
+    bool changingLocation;
 };
 
 #endif // UVCH264CAM_H
