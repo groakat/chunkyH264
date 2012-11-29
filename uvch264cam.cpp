@@ -387,7 +387,7 @@ QString UVCH264Cam::changeLocationToCurrentTime()
         gst_pad_unlink (pad, peer);
         gst_bin_remove(GST_BIN(this->mainPipeline), this->binRec1);
         gst_bin_add(GST_BIN(this->catchPipeline), this->binRec1);
-        gst_pad_link(catchPad, pad);
+        gst_pad_link(catchPad, peer);
         gst_pad_set_blocked(catchPad, false);
         GstEvent* event = gst_event_new_eos();
         gst_pad_push_event(catchPad, event);
@@ -424,7 +424,8 @@ QString UVCH264Cam::changeLocationToCurrentTime()
         /* attach new rec bin to thisera src */
         gst_bin_add(GST_BIN(this->mainPipeline), this->binRec2);
         gst_element_link_filtered(this->queue_0, this->binRec2, this->h264Caps);
-//        gst_pad_link(pad, peer);
+
+//        gst_element_link(this->queue_0, this->binRec2);
 
         /* unref pointers and open async block */
         gst_object_unref (peer);
