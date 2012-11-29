@@ -21,19 +21,26 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-INCLUDEPATH += /home/peter/src/gstreamer-libs/lib/gstreamer/libs/gst/base/
+INCLUDEPATH += /home/peter/src/gstreamer-libs/lib/gstreamer/libs/gst/base/ \
+               /home/peter/src/gstreamer-libs/lib/gstreamer/libs/gst/gst-plugins-base/gst-libs/gst/video/ \
+               /home/peter/src/gstreamer-libs/lib/gstreamer/libs/gst/base/
+
 
 
 LIBS += /usr/lib64/libgobject-2.0.so.0 \
         /usr/lib64/libglib-2.0.so.0    \
          /usr/lib64/libgstreamer-0.10.so.0 \
+\
+#         /home/peter/src/gstreamer-libs/lib/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so.0 \
+#         /home/peter/src/gstreamer-libs/lib/gstreamer/gst/.libs/libgstreamer-0.10.so.0   \
+#         /usr/lib64/libgstvideo-0.10.so.0 \
 #        /usr/lib64/libgstaudio-0.10.so \
 #        ~/src/gstreamer-head/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so \
 #        ~/src/gstreamer-head/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so
-#             ~/src/gstreamer/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so
-#             ~/src/gstreamer/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so \
+#        /home/peter/src/gstreamer-libs/lib/gst-plugins-good/gst/isomp4/.libs/libgstisomp4.so \
 #            /home/peter/src/gstreamer-libs/lib/gstreamer/libs/gst/base/.libs/libgstbase-0.10.so \
-#        /home/peter/src/gstreamer-libs/lib/gst-plugins-good/gst/isomp4/.libs/libgstisomp4.so
+#             ~/src/gstreamer/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so \
+#             ~/src/gstreamer/head/gst-plugins-base/gst-libs/gst/video/.libs/libgstvideo-0.10.so \
 
 unix {
 

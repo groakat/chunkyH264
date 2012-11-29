@@ -7,18 +7,26 @@ UVCH264Cam::UVCH264Cam(QObject *parent = 0) : QThread(parent)
 //    Pipeline pipeline = Pipeline();
    this->keyFrameNumber = 0;
 
-    this->bin = NULL;
+    this->mainPipeline = NULL;
     this->src = NULL;
     this->queue_src = NULL;
-    this->identity = NULL;
-    this->file_sink0 = NULL;
+    this->identity1 = NULL;
+    this->identity2 = NULL;
+    this->identity3 = NULL;
     this->file_sink1 = NULL;
-    this->mp4mux0 = NULL;
+    this->file_sink2 = NULL;
+    this->file_sink3 = NULL;
     this->mp4mux1 = NULL;
+    this->mp4mux2 = NULL;
+    this->mp4mux3 = NULL;
     this->queue_0 = NULL;
     this->queue_1 = NULL;
+    this->queue_2 = NULL;
+    this->queue_3 = NULL;
     this->valve_0 = NULL;
-    this->ph264 = NULL;
+    this->ph264_1 = NULL;
+    this->ph264_2 = NULL;
+    this->ph264_3 = NULL;
     this->t = NULL;
     this->vid_capsfilter = NULL;
     this->vf_capsfilter = NULL;
@@ -37,10 +45,10 @@ UVCH264Cam::UVCH264Cam(QObject *parent = 0) : QThread(parent)
 
 UVCH264Cam::~UVCH264Cam()
 {
-    if (this->bin){
+    if (this->mainPipeline){
         /* stop capturing the data */
-        gst_element_send_event (this->bin, gst_event_new_eos());
-        gst_element_set_state (this->bin, GST_STATE_NULL);
+        gst_element_send_event (this->mainPipeline, gst_event_new_eos());
+        gst_element_set_state (this->mainPipeline, GST_STATE_NULL);
 
         /* Free resources */
 //        if (msg != NULL)
@@ -48,13 +56,21 @@ UVCH264Cam::~UVCH264Cam()
 
         gst_object_unref (bus);
 
-        gst_object_unref (this->bin);
+        gst_object_unref (this->mainPipeline);
+        gst_object_unref (this->catchPipeline);
+        gst_object_unref (this->binRec1);
+        gst_object_unref (this->binRec2);
+        gst_object_unref (this->binRec3);
 
-        gst_object_unref (this->src);
-        gst_object_unref (this->file_sink0);
-        gst_object_unref (this->queue_0);
-        gst_object_unref (this->mp4mux0);
-//        gst_object_unref (this->valve_0);
+//        gst_object_unref (this->src);
+//        gst_object_unref (this->file_sink2);
+//        gst_object_unref (this->queue_0);
+//        gst_object_unref (this->mp4mux1);
+
+//        gst_element_release_request_pad (this->src, this->vfsrcPad);
+//        gst_element_release_request_pad (this->src, this->vidsrcPad);
+//        gst_object_unref (this->vfsrcPad);
+//        gst_object_unref (this->vidsrcPad);
 
         qDebug() << "disconnect!!!!";
 
@@ -78,43 +94,162 @@ void UVCH264Cam::run()
     qDebug() << filename;
 
     //    const QString launcher = "uvch264_src device=" + this->device + " name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! video/x-h264,width=1920,height=1080,framerate=30/1 ! tee name=t ! valve name=value_0 ! queue name=queue_0 ! h264parse name=ph264 ! mp4mux name=mux ! filesink name=file_sink0 location=" + filename + " t. queue ! filesink location=/tmp/vid.mp4";
-    const QString launcher = "uvch264_src device=" + this->device + " name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! video/x-h264,width=1920,height=1080,framerate=30/1 ! queue name=queue_0 ! queue name=queue_1 ! h264parse name=ph264 ! mp4mux name=mux ! idenity name=identity ! filesink location=" + filename + " name=file_sink0";
-    this->bin = gst_parse_launch (launcher.toStdString().c_str(), NULL);
+//    const QString launcher = \
+//        "uvch264_src device=" + this->device + " name=src auto-start=true initial-bitrate=6000000 rate-control=cbr " +\
+//        "src.vfsrc ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! queue ! xvimagesink sync=FALSE async=FALSE " +\
+//        "src.vidsrc ! video/x-h264,width=1920,height=1080,framerate=30/1 ! queue name=queue_0 " +\
+//            "! queue name=queue_1 ! h264parse name=ph264_1 ! mp4mux name=mux_1 ! identity name=identity_1 ! filesink location=" + filename + " name=file_sink1";// +\
+//        "! output-selector name=os " +\
+//        "os. ! queue name=queue_2 ! h264parse name=ph264_2 ! mp4mux name=mux_2 ! identity name=identity_2 ! filesink location=" + filename + "b name=file_sink2 " +\
+//        "os. ! queue name=queue_3 ! h264parse name=ph264_3 ! mp4mux name=mux_3 ! identity name=identity_3 ! filesink location=" + filename + " name=file_sink3";
+//    this->bin = gst_parse_launch (launcher.toStdString().c_str(), NULL);
 //    this->bin = gst_parse_launch("uvch264_src device=" + device + "name=src auto-start=true initial-bitrate=6000000 rate-control=cbr src.vfsrc ! queue ! video/x-raw-yuv,width=320,height=240,framerate=30/1 ! xvimagesink src.vidsrc ! queue ! video/x-h264,width=1920,height=1080,framerate=30/1 ! filesink name=file_sink0 location=" + filename;)
 
 
-    this->file_sink0 = gst_bin_get_by_name (GST_BIN (this->bin), "file_sink0");
-    this->src = gst_bin_get_by_name (GST_BIN (this->bin), "src");
-    this->queue_0 = gst_bin_get_by_name (GST_BIN (this->bin), "queue_0");
-    this->queue_1 = gst_bin_get_by_name (GST_BIN (this->bin), "queue_1");
-    this->mp4mux0 = gst_bin_get_by_name (GST_BIN (this->bin), "mux");
-    this->valve_0 = gst_bin_get_by_name (GST_BIN (this->bin), "valve_0");
-    this->ph264 = gst_bin_get_by_name (GST_BIN (this->bin), "ph264");
-    this->identity = gst_bin_get_by_name (GST_BIN (this->bin), "identity");
-//    this->t = gst_bin_get_by_name (GST_BIN (this->bin), "t");
+    this->src = gst_element_factory_make("uvch264_src", "src");
+    this->queue_preview = gst_element_factory_make( "queue", "queue_preview");
+    this->preview_sink = gst_element_factory_make( "xvimagesink", "previewsink");
+    this->file_sink1 = gst_element_factory_make( "filesink", "file_sink1");
+    this->file_sink2 = gst_element_factory_make( "filesink", "file_sink2");
+    this->file_sink3 = gst_element_factory_make( "filesink", "file_sink3");
+    this->queue_0 = gst_element_factory_make( "queue", "queue_0");
+    this->queue_1 = gst_element_factory_make( "queue", "queue_1");
+    this->queue_2 = gst_element_factory_make( "queue", "queue_2");
+    this->queue_3 = gst_element_factory_make( "queue", "queue_3");
+    this->mp4mux1 = gst_element_factory_make ( "mp4mux", "mux_1");
+    this->mp4mux2 = gst_element_factory_make( "mp4mux", "mux_2");
+    this->mp4mux3 = gst_element_factory_make( "mp4mux", "mux_3");
+    this->ph264_1 = gst_element_factory_make ("h264parse", "ph264_1");
+    this->ph264_2 = gst_element_factory_make( "h264parse", "ph264_2");
+    this->ph264_3 = gst_element_factory_make( "h264parse", "ph264_3");
+    this->identity1 = gst_element_factory_make("identity", "identity_1");
+    this->identity2 = gst_element_factory_make( "identity", "identity_2");
+    this->identity3 = gst_element_factory_make( "identity", "identity_3");
 
+    this->fakesrc = gst_element_factory_make( "fakesrc", "fakesrc");
+    this->fakesink = gst_element_factory_make( "fakesink", "fakesink");
+    this->queue_catch = gst_element_factory_make( "queue", "queue_catch");
 
+    this->t = gst_element_factory_make( "tee", "teee");
 
-    //    g_object_set(this->queue_0, "max-size-bytes", 4294967295, NULL);
-    g_object_set(this->file_sink0, "async", false, NULL);
+    if (!src || !queue_preview || !preview_sink || !file_sink1 || !file_sink2 || !file_sink3 || !queue_0 ||
+            !queue_1 || !queue_2 || !queue_3 || !mp4mux1|| !mp4mux2 || !mp4mux3 || !ph264_1 || !queue_catch ||
+            !ph264_2 || !ph264_3 || !identity1 || !identity2 || !identity3 || !fakesrc || !fakesink ) {
+
+        g_printerr ("Not all elements could be created.\n");
+        qDebug() << "this->src" << this->src;
+        qDebug() << "this->queue_preview" << this->queue_preview;
+        qDebug() << "this->preview_sink" << this->preview_sink;
+        qDebug() << "this->file_sink1" << this->file_sink1;
+        qDebug() << "this->file_sink2" << this->file_sink2;
+        qDebug() << "this->file_sink3" << this->file_sink3;
+        qDebug() << "this->queue_0 "<< this->queue_0;
+        qDebug() << "this->queue_1" << this->queue_1;
+        qDebug() << "this->queue_2" << this->queue_2;
+        qDebug() << "this->queue_3" << this->queue_3;
+        qDebug() << "this->mp4mux1" << this->mp4mux1;
+        qDebug() << "this->mp4mux2" << this->mp4mux2;
+        qDebug() << "this->mp4mux3" << this->mp4mux3;
+        qDebug() << "this->ph264_1" << this->ph264_1;
+        qDebug() << "this->ph264_2" << this->ph264_2;
+        qDebug() << "this->ph264_3" << this->ph264_3;
+        qDebug() << "this->identity1" << this->identity1;
+        qDebug() << "this->identity2" << this->identity2;
+        qDebug() << "this->identity3" << this->identity3;
+        qDebug() << "this->fakesrc" << this->fakesrc;
+        qDebug() << "this->queue_catch" << this->queue_catch;
+        return;
+      }
+    /* define video source caps */
+    GstCaps *previewCaps;
+    previewCaps = gst_caps_new_simple ("video/x-raw-yuv",
+         "width", G_TYPE_INT, 320,
+         "height", G_TYPE_INT, 240,
+         "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
+
+    h264Caps = gst_caps_new_simple ("video/x-h264",
+         "width", G_TYPE_INT, 1920,
+         "height", G_TYPE_INT, 1080,
+         "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
+
+    /* do element settings */
+    g_object_set(this->src, "device", this->device.toStdString().c_str(), "auto-start", true, "initial-bitrate", 6000000, "async-handling", true, NULL);
+//    g_object_set(this->src, "async-handling", true, "message-forward", true, NULL);
+    g_object_set(this->fakesrc, "is-live", true, "sync", true, NULL);
+
+    g_object_set(this->file_sink1, "sync", FALSE, "async", FALSE, "location", this->location.toStdString().c_str(), NULL);
+    g_object_set(this->file_sink2, "sync", FALSE, "async", FALSE, "location", this->location.toStdString().c_str(), NULL);
+    g_object_set(this->file_sink3, "sync", FALSE, "async", FALSE, "location", this->location.toStdString().c_str(), NULL);
     QString recoverPath = filename + ".moov";
-    g_object_set(this->mp4mux0, "moov-recovery-file", recoverPath.toStdString().c_str(), NULL);
+    g_object_set(this->mp4mux1, "moov-recovery-file", recoverPath.toStdString().c_str(),  "fragment-duration", 1000, NULL);
+    g_object_set(this->mp4mux2, "moov-recovery-file", (recoverPath + "test").toStdString().c_str(),  "fragment-duration", 1000, NULL);
+    g_object_set(this->mp4mux3, "moov-recovery-file", recoverPath.toStdString().c_str(),  "fragment-duration", 1000, NULL);
+
+    /* set up bins and pipelines */
+    this->mainPipeline = gst_pipeline_new("vidsrc pipeline");
+    this->catchPipeline = gst_pipeline_new("catch pipeline");
+    this->binRec1 = gst_bin_new("rec1 bin");
+    this->binRec2 = gst_bin_new("rec2 bin");
+    this->binRec3 = gst_bin_new("rec3 bin");
+
+    gst_bin_add_many(GST_BIN(this->mainPipeline), this->src, this->queue_preview, this->preview_sink, this->queue_0, NULL);
+    gst_bin_add_many(GST_BIN(this->catchPipeline), this->fakesrc, this->queue_catch, this->fakesink, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec1), this->queue_1, this->ph264_1, this->mp4mux1, this->identity1, this->file_sink1, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec2), this->queue_2, this->ph264_2, this->mp4mux2, this->identity2, this->file_sink2, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec3), this->queue_3, this->ph264_3, this->mp4mux3, this->identity3, this->file_sink3, NULL);
+
+
+    /* create pads for src and link them to connecting queues*/
+    qDebug() << (gst_element_link_pads_filtered(this->src, "vfsrc", this->queue_preview, "sink", previewCaps) != GST_PAD_LINK_OK);
+    qDebug() << (gst_element_link_pads_filtered(this->src, "vidsrc", this->queue_0, "sink", h264Caps) != GST_PAD_LINK_OK);
+
+    /* link always pads */
+    gst_element_link(this->queue_preview, this->preview_sink);
+    gst_element_link_many(this->fakesrc, this->queue_catch, this->fakesink);
+
+    gst_element_link_many(this->queue_1, this->ph264_1, this->mp4mux1, this->identity1, this->file_sink1, NULL);
+    gst_element_link_many(this->queue_2, this->ph264_2, this->mp4mux2, this->identity2, this->file_sink2, NULL);
+    gst_element_link_many(this->queue_3, this->ph264_3, this->mp4mux3, this->identity3, this->file_sink3, NULL);
+
+    /* add ghost pads to rec bins */
+    GstPad* pad = gst_element_get_static_pad (this->queue_1, "sink");
+    gst_element_add_pad (this->binRec1, gst_ghost_pad_new ("sink", pad));
+    gst_object_unref (GST_OBJECT (pad));
+
+    pad = gst_element_get_static_pad (this->queue_2, "sink");
+    gst_element_add_pad (this->binRec2, gst_ghost_pad_new ("sink", pad));
+    gst_object_unref (GST_OBJECT (pad));
+
+    pad = gst_element_get_static_pad (this->queue_3, "sink");
+    gst_element_add_pad (this->binRec3, gst_ghost_pad_new ("sink", pad));
+    gst_object_unref (GST_OBJECT (pad));
+
+    /* connect the first recording bin to main pipeline */
+    gst_bin_add(GST_BIN(this->mainPipeline), this->binRec1);
+    gst_element_link(this->queue_0, this->binRec1);
 
     msg = NULL;
-    /* Wait until error or EOS */
-    bus = gst_element_get_bus (this->bin);
-    gst_bus_set_sync_handler (bus, (GstBusSyncHandler) gstPipelineHandler, this);
 
-    int ret = gst_element_set_state (this->bin, GST_STATE_PLAYING);
+    /* Wait until error or EOS */
+    bus = gst_element_get_bus (this->mainPipeline);
+    gst_bus_add_watch (bus, (GstBusFunc) gstPipelineHandler, this);
+
+    bus = gst_element_get_bus (this->catchPipeline);
+    gst_bus_add_watch (bus, (GstBusFunc) gstPipelineHandler, this);
+//    gst_bus_set_sync_handler (bus, (GstBusSyncHandler) gstPipelineHandler, this);
+
+    int ret = gst_element_set_state (this->mainPipeline, GST_STATE_PLAYING);
+    /* catch pipeline needs to run to be able to block its pads */
+    ret = gst_element_set_state (this->catchPipeline, GST_STATE_PLAYING);
 
     if (ret == GST_STATE_CHANGE_FAILURE) {
         g_printerr ("Unable to set the pipeline to the playing state.\n");
-        gst_object_unref (this->bin);
+        gst_object_unref (this->mainPipeline);
         gst_object_unref (this->src);
 //        gst_object_unref (this->identity);
-        gst_object_unref (this->file_sink0);
+        gst_object_unref (this->file_sink2);
         gst_object_unref (this->queue_0);
-        gst_object_unref (this->mp4mux0);
+        gst_object_unref (this->mp4mux1);
 //        gst_object_unref (this->valve_0);
 //        gst_object_unref (this->file_sink1);
 //        gst_object_unref (this->t);
@@ -124,7 +259,7 @@ void UVCH264Cam::run()
       }
 //    gst_bus_add_watch (bus, (GstBusFunc) gstPipelineHandler, this);
 
-    GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(this->bin), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
+    GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(this->mainPipeline), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
 
 //    this->busQueue_0 = gst_element_get_bus (this->file_sink0);
 //    gst_bus_set_sync_handler (this->busQueue_0 , (GstBusSyncHandler) gstQueueHandler, this);
@@ -138,9 +273,9 @@ void UVCH264Cam::run()
 int UVCH264Cam::changeLocation(QString filename)
 {
     qDebug() << "UVCH264Cam::changeLocation";
-    int ret = gst_element_set_state (this->file_sink0, GST_STATE_NULL);
-    g_object_set(this->file_sink0, "location", filename.data(), /*"append", true,*/ NULL);
-    ret = gst_element_set_state (this->file_sink0, GST_STATE_PLAYING);
+    int ret = gst_element_set_state (this->file_sink2, GST_STATE_NULL);
+    g_object_set(this->file_sink2, "location", filename.data(), /*"append", true,*/ NULL);
+    ret = gst_element_set_state (this->file_sink2, GST_STATE_PLAYING);
 
     return ret;
 }
@@ -153,9 +288,9 @@ int UVCH264Cam::changeBaseDir(QString baseDir)
 int UVCH264Cam::changeDevice(QString device)
 {
     qDebug() << "UVCH264Cam::changeDevice";
-    if (this->bin){
+    if (this->mainPipeline){
         /* stop capturing the data */
-        gst_element_set_state (this->bin, GST_STATE_NULL);
+        gst_element_set_state (this->mainPipeline, GST_STATE_NULL);
 
         /* Free resources */
 //        if (msg != NULL)
@@ -164,7 +299,7 @@ int UVCH264Cam::changeDevice(QString device)
 
         gst_object_unref (bus);
 
-        gst_object_unref (this->bin);
+        gst_object_unref (this->mainPipeline);
 
         this->exit();
 
@@ -185,11 +320,11 @@ QString UVCH264Cam::getLocation()
 int UVCH264Cam::switchReview(bool toogle)
 {
     qDebug() << "UVCH264Cam::changeLocation";
-    if(this->bin){
+    if(this->mainPipeline){
         if (toogle){
-            gst_element_unlink(this->queue_0, this->file_sink0);
+            gst_element_unlink(this->queue_0, this->file_sink2);
         }else{
-            gst_element_link(this->queue_0, this->file_sink0);
+            gst_element_link(this->queue_0, this->file_sink2);
         }
     }
 }
@@ -199,10 +334,10 @@ int UVCH264Cam::disconnect()
     qDebug() << "UVCH264Cam::disconnect()";
     this->changingLocation = false;
 
-    if (this->bin){
+    if (this->mainPipeline){
         /* stop capturing the data */
-        gst_element_send_event (this->bin, gst_event_new_eos());
-        gst_element_set_state (this->bin, GST_STATE_NULL);
+        gst_element_send_event (this->mainPipeline, gst_event_new_eos());
+        gst_element_set_state (this->mainPipeline, GST_STATE_NULL);
     }
     this->quit();
 }
@@ -225,16 +360,79 @@ QString UVCH264Cam::changeLocationToCurrentTime()
     int ret = 0;
 
 //    updateFilesink();
-    if (this->bin != NULL){
+    if (this->mainPipeline != NULL){
+        qDebug() << "UVCH264Cam::changeLocationToCurrentTime(): send EOS";
 //        ret = gst_element_set_state (this->mp4mux0, GST_STATE_NULL);
 //        g_object_set(this->valve_0, "drop", true, NULL);
-        qDebug() << "UVCH264Cam::changeLocationToCurrentTime(): send EOS";
         GstPad* pad = gst_element_get_pad(this->queue_0 , "src");
-        gst_pad_set_blocked_async(pad, TRUE, handle_block_location, this);
-        gst_object_unref(pad);
-//        gst_element_send_event (this->mp4mux0, gst_event_new_eos());
+//        gst_pad_set_blocked_async(pad, TRUE, handle_block_location, this);
+        gst_pad_set_blocked(pad, true);
 
-//        gst_element_set_state(this->file_sink0, GST_STATE_NULL);
+        /* prepare new file sink and mp4mux */
+        gst_element_set_state(this->binRec2, GST_STATE_NULL);
+        this->updateFilesink(this->file_sink2, this->mp4mux2);
+
+        /* preparing catch pipeline (set playing, load with EOS) */
+  //      gst_element_set_state(this->catchPipeline, GST_STATE_NULL);
+        GstPad* catchPad = gst_element_get_pad(this->queue_catch, "src");
+        gst_element_set_locked_state (this->queue_catch, true);
+        qDebug() << "UVCH264this::handle_block_location "<< gst_pad_set_blocked(catchPad, true);
+        gst_element_set_locked_state(this->queue_catch, false);
+        GstPad     *catchPeer = gst_pad_get_peer (catchPad);
+        gst_pad_unlink (catchPad, catchPeer);
+//        gst_element_set_state(this->catchPipeline, GST_STATE_PLAYING);
+
+        /* pass actual rec bin to catch pipeline and unblock flow*/
+        GstPad     *peer = gst_pad_get_peer (pad);
+        gst_pad_unlink (pad, peer);
+        gst_bin_remove(GST_BIN(this->mainPipeline), this->binRec1);
+        gst_bin_add(GST_BIN(this->catchPipeline), this->binRec1);
+        gst_pad_link(catchPad, pad);
+        gst_pad_set_blocked(catchPad, false);
+        GstEvent* event = gst_event_new_eos();
+        gst_pad_push_event(catchPad, event);
+
+        /* correct for latency */
+        gst_element_set_state(this->binRec2, GST_STATE_PLAYING);
+        GstQuery* query =  gst_query_new_latency();
+        bool res = gst_element_query (this->queue_0, query);
+        GstClockTime min_latency;
+        GstClockTime max_latency;
+        if (res) {
+            gboolean live;
+            gst_query_parse_latency  (query, &live, &min_latency, &max_latency);
+            res = gst_element_query (this->binRec2, query);
+
+            qDebug() << "min lat " << GST_TIME_AS_MSECONDS(min_latency) \
+                     << " max lat " << GST_TIME_AS_MSECONDS(max_latency);
+            if(res){
+                gst_query_set_latency (query, live, min_latency, max_latency);
+            }else{
+                qDebug() << "latency query failed";
+            }
+        }else{
+            qDebug() << "latency query failed";
+        }
+        gst_query_unref (query);
+
+
+        peer = gst_element_get_pad(this->binRec2, "sink");
+
+        GstEvent* latEvent = gst_event_new_latency(min_latency);
+        gst_pad_push_event(peer, latEvent);
+
+        /* attach new rec bin to thisera src */
+        gst_bin_add(GST_BIN(this->mainPipeline), this->binRec2);
+        gst_element_link_filtered(this->queue_0, this->binRec2, this->h264Caps);
+//        gst_pad_link(pad, peer);
+
+        /* unref pointers and open async block */
+        gst_object_unref (peer);
+        gst_object_unref (catchPad);
+
+        gst_pad_set_blocked (pad, false);
+        gst_object_unref(pad);
+        qDebug() << "end of switch";
     }
 
 //    emit this->changedLocation(oldLocation);
@@ -273,24 +471,28 @@ QString UVCH264Cam::updateCurrentFilename()
 
 }
 
-void UVCH264Cam::updateFilesink()
+void UVCH264Cam::updateFilesink(GstElement* filesink, GstElement* mp4mux)
 {
     qDebug() << "UVCH264Cam::updateFilesink";
     int ret = 0;
 
-    if (this->bin != NULL){
-        GstClockTime gct = 10;
-//        GstEvent* event =  gst_video_event_new_upstream_force_key_unit(gct, true, this->keyFrameNumber++);
-//        qDebug() << this->keyFrameNumber;
-//        gst_element_send_event (this->bin, event);
+    if (this->mainPipeline != NULL){
+        GstEvent* event = gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, true, this->keyFrameNumber++);
+        qDebug() << this->keyFrameNumber;
+        gst_element_send_event (this->mainPipeline, event);
 
-        ret = gst_element_set_state (this->file_sink0, GST_STATE_NULL);
+        ret = gst_element_set_state (filesink, GST_STATE_NULL);
 //        QChar* path = location.data();
-        std::string path = location.toStdString();
+        std::string path = this->location.toStdString();
         qDebug() << "location.data() " << path.c_str() ;
-        g_object_set(this->file_sink0, "location", path.c_str(),NULL);
+        g_object_set(filesink, "location", path.c_str(),NULL);
         gint bufferStatus = 100;
-        ret = gst_element_set_state (this->file_sink0, GST_STATE_PLAYING);
+//        ret = gst_element_set_state (filesink, GST_STATE_PLAYING);
+        ret = gst_element_set_state (mp4mux, GST_STATE_NULL);
+        QString recoverPath = this->location + ".moov";
+        g_object_set(mp4mux, "moov-recovery-file", recoverPath.toStdString().c_str(), NULL);
+//        ret = gst_element_set_state (mp4mux, GST_STATE_PLAYING);
+
         g_object_get(this->queue_0, "current-level-bytes", &bufferStatus, NULL);
         qDebug() << bufferStatus <<  (bufferStatus / 4294967295.0f);
     }
@@ -354,7 +556,7 @@ GstBusSyncReply UVCH264Cam::gstPipelineHandler(GstBus *bus, GstMessage *msg, UVC
             break;
         case GST_MESSAGE_STATE_CHANGED:
             /* We are only interested in state-changed messages from the pipeline */
-            if (GST_MESSAGE_SRC (msg) == GST_OBJECT (cam->bin)) {
+            if (GST_MESSAGE_SRC (msg) == GST_OBJECT (cam->mainPipeline)) {
             GstState old_state, new_state, pending_state;
             gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
             g_print ("Pipeline state changed from %s to %s:\n",
@@ -449,7 +651,7 @@ GstBusSyncReply UVCH264Cam::gstPipelineHandler(GstBus *bus, GstMessage *msg, UVC
      return GST_BUS_DROP;
 }
 
-GstBusSyncReply UVCH264Cam::gstQueueHandler(GstBus *bus, GstMessage *msg, UVCH264Cam *cam)
+bool UVCH264Cam::gstQueueHandler(GstBus *bus, GstMessage *msg, UVCH264Cam *cam)
 {
     qDebug() << "UVCH264Cam::gstQueueHandler";
     if (msg != NULL) {
@@ -466,15 +668,15 @@ GstBusSyncReply UVCH264Cam::gstQueueHandler(GstBus *bus, GstMessage *msg, UVCH26
             break;
           case GST_MESSAGE_EOS:
             g_print ("End-Of-Stream reached.\n");
-            if((GST_MESSAGE_SRC (msg) == GST_OBJECT (cam->file_sink0))){
-                if (cam->changingLocation){
-                    cam->updateFilesink();
-                    cam->changingLocation = false;
-                    int ret = gst_element_set_state (cam->queue_0, GST_STATE_PLAYING);
-                    g_object_set(cam->valve_0, "drop", false, NULL);
+//            if((GST_MESSAGE_SRC (msg) == GST_OBJECT (cam->file_sink2))){
+//                if (cam->changingLocation){
+//                    cam->updateFilesink();
+//                    cam->changingLocation = false;
+//                    int ret = gst_element_set_state (cam->queue_0, GST_STATE_PLAYING);
+//                    g_object_set(cam->valve_0, "drop", false, NULL);
 
-                 }
-            }
+//                 }
+//            }
         default:
           /* We should not reach here because we only asked for ERRORs and EOS */
 //           g_printerr ("Unexpected message received.\n");
@@ -483,7 +685,7 @@ GstBusSyncReply UVCH264Cam::gstQueueHandler(GstBus *bus, GstMessage *msg, UVCH26
 
       gst_message_unref (msg);
     }
-    return GST_BUS_DROP;
+    return GST_BUS_PASS;
 
 }
 
@@ -495,13 +697,21 @@ void UVCH264Cam::handle_block_location(GstPad *pad, gboolean blocked, gpointer u
 
     if (blocked) {
         qDebug() << "UVCH264Cam::handle_block_location - true branch";
-      GstPad     *peer = gst_pad_get_peer (pad);
 
-      gint datarate;
-      g_object_get(cam->identity, "datarate", &datarate, NULL);
-      qDebug() << "UVCH264Cam::handle_block_location: datarate1= " << datarate;
+//      guint queueBuffer;
+//      g_object_get(cam->queue_1, "current-level-bytes", &queueBuffer, NULL);
+//      qDebug() << "UVCH264Cam::handle_block_location: queueBuffer1= " << queueBuffer;
 
-      gst_pad_unlink (pad, peer);
+//      gint datarate;
+//      g_object_get(cam->identity, "datarate", &datarate, NULL);
+//      qDebug() << "UVCH264Cam::handle_block_location: datarate1= " << datarate;
+
+//      gchar* lastMessage;
+//      g_object_get(cam->identity, "last-message", &lastMessage, NULL);
+//      qDebug() << "UVCH264Cam::handle_block_location: last message= " << lastMessage;
+
+
+//      gst_pad_unlink (pad, peer);
 
 //      gst_pad_set_blocked(pad, true);
 
@@ -511,12 +721,18 @@ void UVCH264Cam::handle_block_location(GstPad *pad, gboolean blocked, gpointer u
 //      gst_object_unref(element);
 
       /* send EOS */
-      event = gst_event_new_eos();
-      gst_pad_push_event(peer, event);
+//      event = gst_event_new_eos();
+//      gst_pad_push_event(peer, event);
 
-      /* send flush  start */
-      event = gst_event_new_flush_start();
-      gst_pad_push_event(peer, event);
+//      g_object_get(cam->queue_1, "current-level-bytes", &queueBuffer, NULL);
+//      qDebug() << "UVCH264Cam::handle_block_location: queueBuffer2= " << queueBuffer;
+
+//      /* send flush  start */
+//      event = gst_event_new_flush_start();
+//      gst_pad_push_event(peer, event);
+
+//      g_object_get(cam->queue_1, "current-level-bytes", &queueBuffer, NULL);
+//      qDebug() << "UVCH264Cam::handle_block_location: queueBuffer3= " << queueBuffer;
 
 //      g_object_get(cam->identity, "datarate", &datarate, NULL);
 //      qDebug() << "UVCH264Cam::handle_block_location: datarate after EOS= " << datarate;
@@ -527,27 +743,55 @@ void UVCH264Cam::handle_block_location(GstPad *pad, gboolean blocked, gpointer u
 //          QThread::msleep(1);
 //      }
 
-      cam->updateFilesink();
 
-      QString recoverPath = cam->getLocation() + ".moov";
-      gst_element_set_state(cam->mp4mux0, GST_STATE_NULL);
-      g_object_set(cam->mp4mux0, "moov-recovery-file", recoverPath.toStdString().c_str(), NULL);
-      gst_element_set_state(cam->mp4mux0, GST_STATE_PLAYING);
+//      cam->msleep(1000);
 
 
-      /* send flush  stop*/
-      event = gst_event_new_flush_stop();
-      gst_pad_push_event(peer, event);
 
 
-      gst_element_set_state(cam->queue_1, GST_STATE_PLAYING);
+//      /* send flush  stop*/
+//      event = gst_event_new_flush_stop();
+//      gst_pad_push_event(peer, event);
 
+//      gst_element_set_state(cam->catchBin, GST_STATE_PLAYING);
+//      GstPad* fakeSrcPad = gst_element_get_pad(cam->fakesrc, "src");
+//      gst_pad_set_blocked(fakeSrcPad, true);
+
+      /* prepare new file sink and mp4mux */
+      gst_element_set_state(cam->binRec2, GST_STATE_NULL);
+      cam->updateFilesink(cam->file_sink2, cam->mp4mux2);
+
+      /* preparing catch pipeline (set playing, load with EOS) */
+//      gst_element_set_state(cam->catchPipeline, GST_STATE_NULL);
+      GstPad* catchPad = gst_element_get_static_pad(cam->queue_catch, "src");
+      gst_element_set_locked_state (cam->queue_catch, true);
+      qDebug() << "UVCH264Cam::handle_block_location "<< gst_pad_set_blocked(catchPad, true);
+      gst_element_set_locked_state(cam->queue_catch, false);
+//      gst_element_set_state(cam->catchPipeline, GST_STATE_PLAYING);
+      event = gst_event_new_eos();
+      gst_pad_push_event(catchPad, event);
+
+      /* pass actual rec bin to catch pipeline and unblock flow*/
+      GstPad     *peer = gst_pad_get_peer (pad);
+      gst_pad_unlink (pad, peer);
+      gst_bin_remove(GST_BIN(cam->mainPipeline), cam->binRec1);
+      gst_bin_add(GST_BIN(cam->catchPipeline), cam->binRec1);
+      gst_pad_link(catchPad, pad);
+      gst_pad_set_blocked(catchPad, false);
+
+      /* attach new rec bin to camera src */
+      gst_element_set_state(cam->binRec2, GST_STATE_PLAYING);
+      gst_bin_add(GST_BIN(cam->mainPipeline), cam->binRec2);
+
+      peer = gst_element_get_pad(cam->binRec2, "sink");
       gst_pad_link(pad, peer);
 
+      /* unref pointers and open async block */
+      gst_object_unref (peer);
+      gst_object_unref (catchPad);
 
       gst_pad_set_blocked_async (pad, FALSE, handle_block_location, cam);
 
-      gst_object_unref (peer);
     }else{
 //        gst_element_set_state(cam->queue_1, GST_STATE_PLAYING);
 //        gst_element_set_state(cam->mp4mux0, GST_STATE_PLAYING);
@@ -560,3 +804,244 @@ void UVCH264Cam::handle_block_location(GstPad *pad, gboolean blocked, gpointer u
     }
 
 }
+
+
+//GstEvent *
+//gst_video_event_keyframe (guint count)
+//{
+//  GstEvent *force_key_unit_event;
+
+//  s = gst_structure_new (GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME,
+//      "running-time", GST_TYPE_CLOCK_TIME, GST_CLOCK_TIME_NONE,
+//      "all-headers", G_TYPE_BOOLEAN, true,
+//      "count", G_TYPE_UINT, count, NULL);
+//  force_key_unit_event = gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, s);
+
+//  return force_key_unit_event;
+//}
+
+#define GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME "GstForceKeyUnit"
+
+/**
+ * gst_video_event_new_downstream_force_key_unit:
+ * @timestamp: the timestamp of the buffer that starts a new key unit
+ * @stream_time: the stream_time of the buffer that starts a new key unit
+ * @running_time: the running_time of the buffer that starts a new key unit
+ * @all_headers: %TRUE to produce headers when starting a new key unit
+ * @count: integer that can be used to number key units
+ *
+ * Creates a new downstream force key unit event. A downstream force key unit
+ * event can be sent down the pipeline to request downstream elements to produce
+ * a key unit. A downstream force key unit event must also be sent when handling
+ * an upstream force key unit event to notify downstream that the latter has been
+ * handled.
+ *
+ * To parse an event created by gst_video_event_new_downstream_force_key_unit() use
+ * gst_video_event_parse_downstream_force_key_unit().
+ *
+ * Returns: The new GstEvent
+ * Since: 0.10.36
+ */
+GstEvent *
+UVCH264Cam::gst_video_event_new_downstream_force_key_unit (GstClockTime timestamp,
+    GstClockTime stream_time, GstClockTime running_time, gboolean all_headers,
+    guint count)
+{
+  GstEvent *force_key_unit_event;
+  GstStructure *s;
+
+  s = gst_structure_new (GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME,
+      "timestamp", G_TYPE_UINT64, timestamp,
+      "stream-time", G_TYPE_UINT64, stream_time,
+      "running-time", G_TYPE_UINT64, running_time,
+      "all-headers", G_TYPE_BOOLEAN, all_headers,
+      "count", G_TYPE_UINT, count, NULL);
+  force_key_unit_event = gst_event_new_custom (GST_EVENT_CUSTOM_DOWNSTREAM, s);
+
+  return force_key_unit_event;
+}
+
+/**
+ * gst_video_event_new_upstream_force_key_unit:
+ * @running_time: the running_time at which a new key unit should be produced
+ * @all_headers: %TRUE to produce headers when starting a new key unit
+ * @count: integer that can be used to number key units
+ *
+ * Creates a new upstream force key unit event. An upstream force key unit event
+ * can be sent to request upstream elements to produce a key unit.
+ *
+ * @running_time can be set to request a new key unit at a specific
+ * running_time. If set to GST_CLOCK_TIME_NONE, upstream elements will produce a
+ * new key unit as soon as possible.
+ *
+ * To parse an event created by gst_video_event_new_downstream_force_key_unit() use
+ * gst_video_event_parse_downstream_force_key_unit().
+ *
+ * Returns: The new GstEvent
+ * Since: 0.10.36
+ */
+GstEvent *
+UVCH264Cam::gst_video_event_new_upstream_force_key_unit (GstClockTime running_time,
+    gboolean all_headers, guint count)
+{
+  GstEvent *force_key_unit_event;
+  GstStructure *s;
+
+  s = gst_structure_new (GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME,
+      "running-time", GST_TYPE_CLOCK_TIME, running_time,
+      "all-headers", G_TYPE_BOOLEAN, all_headers,
+      "count", G_TYPE_UINT, count, NULL);
+  force_key_unit_event = gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, s);
+
+  return force_key_unit_event;
+}
+
+/**
+ * gst_video_event_is_force_key_unit:
+ * @event: A #GstEvent to check
+ *
+ * Checks if an event is a force key unit event. Returns true for both upstream
+ * and downstream force key unit events.
+ *
+ * Returns: %TRUE if the event is a valid force key unit event
+ * Since: 0.10.36
+ */
+gboolean
+UVCH264Cam::gst_video_event_is_force_key_unit (GstEvent * event)
+{
+  const GstStructure *s;
+
+  g_return_val_if_fail (event != NULL, FALSE);
+
+  if (GST_EVENT_TYPE (event) != GST_EVENT_CUSTOM_DOWNSTREAM &&
+      GST_EVENT_TYPE (event) != GST_EVENT_CUSTOM_UPSTREAM)
+    return FALSE;               /* Not a force key unit event */
+
+  s = gst_event_get_structure (event);
+  if (s == NULL
+      || !gst_structure_has_name (s, GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME))
+    return FALSE;
+
+  return TRUE;
+}
+
+/**
+ * gst_video_event_parse_downstream_force_key_unit:
+ * @event: A #GstEvent to parse
+ * @timestamp: (out): A pointer to the timestamp in the event
+ * @stream_time: (out): A pointer to the stream-time in the event
+ * @running_time: (out): A pointer to the running-time in the event
+ * @all_headers: (out): A pointer to the all_headers flag in the event
+ * @count: (out): A pointer to the count field of the event
+ *
+ * Get timestamp, stream-time, running-time, all-headers and count in the force
+ * key unit event. See gst_video_event_new_downstream_force_key_unit() for a
+ * full description of the downstream force key unit event.
+ *
+ * Returns: %TRUE if the event is a valid downstream force key unit event.
+ * Since: 0.10.36
+ */
+gboolean
+UVCH264Cam::gst_video_event_parse_downstream_force_key_unit (GstEvent * event,
+    GstClockTime * timestamp, GstClockTime * stream_time,
+    GstClockTime * running_time, gboolean * all_headers, guint * count)
+{
+  const GstStructure *s;
+  GstClockTime ev_timestamp, ev_stream_time, ev_running_time;
+  gboolean ev_all_headers;
+  guint ev_count;
+
+  g_return_val_if_fail (event != NULL, FALSE);
+
+  if (GST_EVENT_TYPE (event) != GST_EVENT_CUSTOM_DOWNSTREAM)
+    return FALSE;               /* Not a force key unit event */
+
+  s = gst_event_get_structure (event);
+  if (s == NULL
+      || !gst_structure_has_name (s, GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME))
+    return FALSE;
+
+  if (!gst_structure_get_clock_time (s, "timestamp", &ev_timestamp))
+    ev_timestamp = GST_CLOCK_TIME_NONE;
+  if (!gst_structure_get_clock_time (s, "stream-time", &ev_stream_time))
+    ev_stream_time = GST_CLOCK_TIME_NONE;
+  if (!gst_structure_get_clock_time (s, "running-time", &ev_running_time))
+    ev_running_time = GST_CLOCK_TIME_NONE;
+  if (!gst_structure_get_boolean (s, "all-headers", &ev_all_headers))
+    ev_all_headers = FALSE;
+  if (!gst_structure_get_uint (s, "count", &ev_count))
+    ev_count = 0;
+
+  if (timestamp)
+    *timestamp = ev_timestamp;
+
+  if (stream_time)
+    *stream_time = ev_stream_time;
+
+  if (running_time)
+    *running_time = ev_running_time;
+
+  if (all_headers)
+    *all_headers = ev_all_headers;
+
+  if (count)
+    *count = ev_count;
+
+  return TRUE;
+}
+
+/**
+ * gst_video_event_parse_upstream_force_key_unit:
+ * @event: A #GstEvent to parse
+ * @running_time: (out): A pointer to the running_time in the event
+ * @all_headers: (out): A pointer to the all_headers flag in the event
+ * @count: (out): A pointer to the count field in the event
+ *
+ * Get running-time, all-headers and count in the force key unit event. See
+ * gst_video_event_new_upstream_force_key_unit() for a full description of the
+ * upstream force key unit event.
+ *
+ * Create an upstream force key unit event using  gst_video_event_new_upstream_force_key_unit()
+ *
+ * Returns: %TRUE if the event is a valid upstream force-key-unit event. %FALSE if not
+ * Since: 0.10.36
+ */
+gboolean
+UVCH264Cam::gst_video_event_parse_upstream_force_key_unit (GstEvent * event,
+    GstClockTime * running_time, gboolean * all_headers, guint * count)
+{
+  const GstStructure *s;
+  GstClockTime ev_running_time;
+  gboolean ev_all_headers;
+  guint ev_count;
+
+  g_return_val_if_fail (event != NULL, FALSE);
+
+  if (GST_EVENT_TYPE (event) != GST_EVENT_CUSTOM_UPSTREAM)
+    return FALSE;               /* Not a force key unit event */
+
+  s = gst_event_get_structure (event);
+  if (s == NULL
+      || !gst_structure_has_name (s, GST_VIDEO_EVENT_FORCE_KEY_UNIT_NAME))
+    return FALSE;
+
+  if (!gst_structure_get_clock_time (s, "running-time", &ev_running_time))
+    ev_running_time = GST_CLOCK_TIME_NONE;
+  if (!gst_structure_get_boolean (s, "all-headers", &ev_all_headers))
+    ev_all_headers = FALSE;
+  if (!gst_structure_get_uint (s, "count", &ev_count))
+    ev_count = 0;
+
+  if (running_time)
+    *running_time = ev_running_time;
+
+  if (all_headers)
+    *all_headers = ev_all_headers;
+
+  if (count)
+    *count = ev_count;
+
+  return TRUE;
+}
+
+
