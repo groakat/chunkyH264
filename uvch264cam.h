@@ -74,29 +74,29 @@ public:
 public:
     /* video force key unit event creation and parsing */
 
-    GstEvent * gst_video_event_new_downstream_force_key_unit (GstClockTime timestamp,
+    static GstEvent * gst_video_event_new_downstream_force_key_unit (GstClockTime timestamp,
                                                               GstClockTime streamtime,
                                                               GstClockTime runningtime,
                                                               gboolean all_headers,
                                                               guint count);
 
-    gboolean gst_video_event_parse_downstream_force_key_unit (GstEvent * event,
+    static gboolean gst_video_event_parse_downstream_force_key_unit (GstEvent * event,
                                                               GstClockTime * timestamp,
                                                               GstClockTime * streamtime,
                                                               GstClockTime * runningtime,
                                                               gboolean * all_headers,
                                                               guint * count);
 
-    GstEvent * gst_video_event_new_upstream_force_key_unit (GstClockTime running_time,
+    static GstEvent * gst_video_event_new_upstream_force_key_unit (GstClockTime running_time,
                                                             gboolean all_headers,
                                                             guint count);
 
-    gboolean gst_video_event_parse_upstream_force_key_unit (GstEvent * event,
+    static gboolean gst_video_event_parse_upstream_force_key_unit (GstEvent * event,
                                                             GstClockTime * running_time,
                                                             gboolean * all_headers,
                                                             guint * count);
 
-    gboolean gst_video_event_is_force_key_unit(GstEvent *event);
+    static gboolean gst_video_event_is_force_key_unit(GstEvent *event);
 
 
 
