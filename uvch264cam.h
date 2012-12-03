@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 
 #include <gst/gst.h>
+#include <gst/gstpad.h>
 //#include <gst/video/video.h>
 //#include <gstcollectpads2.h>
 
@@ -17,9 +18,44 @@
 //#include <gst/video/video.h>
 //#include <gst/gstdebugutils.h>
 
+typedef enum {
+  GST_PAD_PROBE_DROP,
+  GST_PAD_PROBE_OK,
+  GST_PAD_PROBE_REMOVE,
+  GST_PAD_PROBE_PASS
+} GstPadProbeReturn;
+
+struct GstPadProbeInfo {
+  int type;
+  gulong id;
+  gpointer data;
+  guint64 offset;
+  guint size;
+};
+
+typedef enum {
+  GST_PAD_PROBE_TYPE_INVALID          = 0,
+  /* flags to control blocking */
+  GST_PAD_PROBE_TYPE_IDLE             = (1 << 0),
+  GST_PAD_PROBE_TYPE_BLOCK            = (1 << 1),
+  /* flags to select datatypes */
+  GST_PAD_PROBE_TYPE_BUFFER           = (1 << 4),
+  GST_PAD_PROBE_TYPE_BUFFER_LIST      = (1 << 5),
+  GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM = (1 << 6),
+  GST_PAD_PROBE_TYPE_EVENT_UPSTREAM   = (1 << 7),
+  GST_PAD_PROBE_TYPE_EVENT_FLUSH      = (1 << 8),
+  GST_PAD_PROBE_TYPE_QUERY_DOWNSTREAM = (1 << 9),
+  GST_PAD_PROBE_TYPE_QUERY_UPSTREAM   = (1 << 10),
+  /* flags to select scheduling mode */
+  GST_PAD_PROBE_TYPE_PUSH             = (1 << 12),
+  GST_PAD_PROBE_TYPE_PULL             = (1 << 13)
+} GstPadProbeType;
+
 class UVCH264Cam : public QThread
 {
     Q_OBJECT
+
+
 
 public:
     UVCH264Cam(QObject *parent);
@@ -64,6 +100,8 @@ public:
 
 
 
+    bool inSwapingBuffers;
+
 public slots:
     QString changeLocationToCurrentTime(QString baseDir);
     QString changeLocationToCurrentTime();
@@ -78,9 +116,14 @@ private:
     QString updateCurrentFilename();
     void updateFilesink(GstElement *filesink, GstElement *mp4mux);
 
-    static GstBusSyncReply gstPipelineHandler(GstBus * bus, GstMessage * msg, UVCH264Cam* cam);
+    static GstBusSyncReply gstPipelineHandler(GstBus *bus, GstMessage *msg, UVCH264Cam * cam);
+    static void swapBuffers(GstPad * pad, gboolean blocked, gpointer user_data);
+
+    static int checkForKeyframes(GstPad *pad, GstBuffer *buffer, gpointer user_data);
+    static int saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data);
     static bool gstQueueHandler(GstBus * bus, GstMessage * msg, UVCH264Cam* cam);
     static void handle_block_location(GstPad* pad, gboolean blocked, gpointer user_data);
+
 
     GstElement *mainPipeline;
     GstElement *binRec1;
@@ -117,6 +160,7 @@ private:
     GstElement *fakesink;
 
     GstCaps *h264Caps;
+    GstCaps* negoCaps;
 
     GstPad* vidsrcPad;
     GstPad* vfsrcPad;
@@ -125,6 +169,8 @@ private:
     GstBus *busQueue_0;
     GstMessage *msg;
 
+    GstBuffer* meta;
+
     QString basedir;
     QString device;
     QString location;
@@ -132,6 +178,10 @@ private:
 
     unsigned int keyFrameNumber;
 
+    int capInspectCounter;
+
+    ulong handler_id;
+    ulong save_id;
     bool changingLocation;
 };
 
