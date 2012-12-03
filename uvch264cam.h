@@ -181,6 +181,8 @@ private:
 
     int capInspectCounter;
 
+    int activeBuffer;
+
     ulong handler_id;
     ulong save_id;
     bool changingLocation;

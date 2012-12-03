@@ -52,6 +52,10 @@ UVCH264Cam::~UVCH264Cam()
         gst_element_send_event (this->catchPipeline, gst_event_new_eos());
         gst_element_set_state (this->catchPipeline, GST_STATE_NULL);
 
+        gst_element_set_state (this->binRec1, GST_STATE_NULL);
+        gst_element_set_state (this->binRec2, GST_STATE_NULL);
+        gst_element_set_state (this->binRec3, GST_STATE_NULL);
+
         /* Free resources */
 //        if (msg != NULL)
 //             gst_message_unref (msg);
@@ -233,6 +237,11 @@ void UVCH264Cam::run()
     /* connect the first recording bin to main pipeline */
     gst_bin_add(GST_BIN(this->mainPipeline), this->binRec1);
     gst_element_link(this->queue_0, this->binRec1);
+    this->activeBuffer = 1;
+
+    /* connect passive recording bin to catch pipeline */
+    gst_bin_add(GST_BIN(this->catchPipeline), this->binRec2);
+    gst_element_link(this->catchPipeline, this->binRec2);
 
     msg = NULL;
 
@@ -369,13 +378,12 @@ QString UVCH264Cam::changeLocationToCurrentTime()
 
     int ret = 0;
 
-    GstEvent* event = gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, true, this->keyFrameNumber++);
-
-    gst_element_send_event (this->src, event);
-
     GstPad* pad = gst_element_get_pad(this->queue_0, "src");
     this->inSwapingBuffers = true;
     this->handler_id = gst_pad_add_buffer_probe (pad, GCallback(checkForKeyframes), this);
+
+    GstEvent* event = gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, true, this->keyFrameNumber++);
+    gst_element_send_event (this->src, event);
 
 //    swapBuffers(this);
 
@@ -429,14 +437,16 @@ void UVCH264Cam::updateFilesink(GstElement* filesink, GstElement* mp4mux)
         qDebug() << "location.data() " << path.c_str() ;
         g_object_set(filesink, "location", path.c_str(),NULL);
         gint bufferStatus = 100;
-//        ret = gst_element_set_state (filesink, GST_STATE_PLAYING);
         ret = gst_element_set_state (mp4mux, GST_STATE_NULL);
         QString recoverPath = this->location + ".moov";
         g_object_set(mp4mux, "moov-recovery-file", recoverPath.toStdString().c_str(), NULL);
-//        ret = gst_element_set_state (mp4mux, GST_STATE_PLAYING);
+        ret = gst_element_set_state (mp4mux, GST_STATE_PLAYING);
+        ret = gst_element_set_state (filesink, GST_STATE_PLAYING);
 
         g_object_get(this->queue_0, "current-level-bytes", &bufferStatus, NULL);
         qDebug() << bufferStatus <<  (bufferStatus / 4294967295.0f);
+
+
     }
 
 
@@ -447,60 +457,80 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
     UVCH264Cam* cam = (UVCH264Cam*)user_data;
     if (blocked){
         qDebug() << " UVCH264Cam::swapBuffers()";
+        GstElement* oldBinRec;
+        GstElement* newBinRec;
+        GstElement* newMp4mux;
+        GstElement* newParser;
+        GstElement* newFilesink;
+        GstElement* queue;
 
-        GstElement* oldBinRec = cam->binRec1;
-        GstElement* newBinRec = cam->binRec2;
-        GstElement* newMp4mux = cam->mp4mux2;
-        GstElement* newParser = cam->ph264_2;
-        GstElement* newFilesink = cam->file_sink2;
-        GstElement* queue = cam->queue_0;
+        if(cam->activeBuffer == 1){
+            oldBinRec = cam->binRec1;
+            newBinRec = cam->binRec2;
+            newMp4mux = cam->mp4mux2;
+            newParser = cam->ph264_2;
+            newFilesink = cam->file_sink2;
+            queue = cam->queue_0;
+            cam->activeBuffer = 2;
+        }else if(cam->activeBuffer == 2){
+            oldBinRec = cam->binRec2;
+            newBinRec = cam->binRec1;
+            newMp4mux = cam->mp4mux1;
+            newParser = cam->ph264_1;
+            newFilesink = cam->file_sink1;
+            queue = cam->queue_0;
+            cam->activeBuffer = 1;
+        }else{
+            qWarning() << "UVCH264Cam::swapBuffers: activeBuffer out of range";
+        }
 
-        /* prepare new file sink and mp4mux */
-        gst_element_set_state(newBinRec, GST_STATE_NULL);
+        qDebug() << "/* prepare new file sink and mp4mux */";
+        //        gst_element_set_state(newBinRec, GST_STATE_NULL);
         cam->updateFilesink(newFilesink, newMp4mux);
 
-        /* preparing catch pipeline (set playing, load with EOS) */
+        qDebug() << "/* preparing catch pipeline (set playing, load with EOS) */";
         GstPad* catchPad = gst_element_get_pad(cam->queue_catch, "src");
         gst_element_set_locked_state (cam->queue_catch, true);
         gst_element_set_locked_state (queue, true);
-        gst_pad_set_blocked(catchPad, true);
-        gst_element_set_locked_state(cam->queue_catch, false);
-        GstPad     *catchPeer = gst_pad_get_peer (catchPad);
+        gst_element_set_state(cam->catchPipeline, GST_STATE_PLAYING);
+//        gst_pad_set_blocked(catchPad, true);
+        GstPad *catchPeer = gst_pad_get_peer (catchPad);
         gst_pad_unlink (catchPad, catchPeer);
+        gst_bin_remove(GST_BIN(cam->catchPipeline), newBinRec);
+        gst_element_set_state(newBinRec, GST_STATE_NULL);
 
-        /* pass actual rec bin to catch pipeline and unblock flow*/
+        qDebug() << "/* pass actual rec bin to catch pipeline and unblock flow*/";
         GstPad     *peer = gst_pad_get_peer (pad);
         gst_pad_unlink (pad, peer);
         gst_bin_remove(GST_BIN(cam->mainPipeline), oldBinRec);
         gst_bin_add(GST_BIN(cam->catchPipeline), oldBinRec);
         gst_pad_link(catchPad, peer);
-        gst_pad_set_blocked(catchPad, false);
+//        gst_pad_set_blocked(catchPad, false);
+        gst_element_set_locked_state(cam->queue_catch, false);
         GstEvent* event = gst_event_new_eos();
         gst_pad_push_event(catchPad, event);
 
-        /* prepare linking */
-        gst_bin_remove(GST_BIN(cam->catchPipeline), cam->fakesink);
-        gst_element_set_state(cam->fakesink, GST_STATE_NULL);
+        qDebug() << "/* prepare linking */";
         gst_element_set_state(newBinRec, GST_STATE_NULL);
         gst_bin_add(GST_BIN(cam->mainPipeline), newBinRec);
         gst_element_set_state(newBinRec, GST_STATE_PLAYING);
 
-        /* update caps */
+        qDebug() << "/* update caps */";
         GstCaps* parseCaps =
              gst_caps_from_string
              ("video/x-h264, width=(int)1920, height=(int)1080, framerate=(fraction)30/1, pixel-aspect-ratio=(fraction)1/1, codec_data=(buffer)01640028ffe1002667640028ac7680780227e5c0512000000300200000078c080002dc6c000b71b7bdf0bc2211a801000468ee38b0");
         GstPad* parsePad = gst_element_get_pad(newParser, "sink");
         gst_pad_set_caps(parsePad, parseCaps);
 
-        /* unlock queue to enable passage of events */
+        qDebug() << "/* unlock queue to enable passage of events */";
         gst_element_set_locked_state (queue, false);
 
 
-        /* syncronize clocks to avoid sync warnings/ potential problems */
+        qDebug() << "/* syncronize clocks to avoid sync warnings/ potential problems */";
         gst_element_set_clock(newBinRec, gst_element_get_clock(cam->mainPipeline));//, GstClockTime(0));
 
 
-        /* correct for latency */
+        qDebug() << "/* correct for latency */";
         GstQuery* query =  gst_query_new_latency();
         bool res = gst_element_query (queue, query);
         GstClockTime min_latency;
@@ -530,14 +560,14 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         gst_pad_push_event(peer, latEvent);
 
 
-        /* attach new rec bin to camera src */
+        qDebug () << "/* attach new rec bin to camera src */";
         gst_element_link(queue, newBinRec);
 
         event = gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, true, cam->keyFrameNumber++);
         qDebug() << cam->keyFrameNumber;
         gst_element_send_event (cam->mainPipeline, event);
 
-        /* unref pointers and open async block */
+        qDebug () << "/* unref pointers and open async block */";
         gst_object_unref (peer);
         gst_object_unref (catchPad);
 
