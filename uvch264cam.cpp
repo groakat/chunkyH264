@@ -517,8 +517,9 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 
         gst_bin_remove(GST_BIN(cam->catchPipeline), cam->fakesink);
         gst_element_set_state(cam->fakesink, GST_STATE_NULL);
-        gst_bin_add(GST_BIN(cam->mainPipeline), cam->fakesink);
-        gst_element_set_state(cam->fakesink, GST_STATE_PLAYING);
+        gst_element_set_state(cam->binRec2, GST_STATE_NULL);
+        gst_bin_add(GST_BIN(cam->mainPipeline), cam->binRec2);
+        gst_element_set_state(cam->binRec2, GST_STATE_PLAYING);
         gst_element_set_locked_state (cam->queue_0, false);
 
 
@@ -529,7 +530,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 
         /* attach new rec bin to camera src */
 //        gst_element_link(cam->queue_0, cam->binRec2);
-        gst_element_link(cam->queue_0, cam->fakesink);
+        gst_element_link(cam->queue_0, cam->binRec2);
 
 
         /* unref pointers and open async block */
