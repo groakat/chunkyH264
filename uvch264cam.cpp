@@ -132,12 +132,13 @@ void UVCH264Cam::run()
     this->fakesrc = gst_element_factory_make( "fakesrc", "fakesrc");
     this->fakesink = gst_element_factory_make( "fakesink", "fakesink");
     this->queue_catch = gst_element_factory_make( "queue", "queue_catch");
+    this->mainFakesink = gst_element_factory_make( "fakesink", "mainFakesink");
 
     this->t = gst_element_factory_make( "tee", "teee");
 
     if (!src || !queue_preview || !preview_sink || !file_sink1 || !file_sink2 || !file_sink3 || !queue_0 ||
             !queue_1 || !queue_2 || !queue_3 || !mp4mux1|| !mp4mux2 || !mp4mux3 || !ph264_1 || !queue_catch ||
-            !ph264_2 || !ph264_3 || !identity1 || !identity2 || !identity3 || !fakesrc || !fakesink ) {
+            !ph264_2 || !ph264_3 || !identity1 || !identity2 || !identity3 || !fakesrc || !fakesink || !fakesink) {
 
         g_printerr ("Not all elements could be created.\n");
         qDebug() << "this->src" << this->src;
@@ -161,6 +162,7 @@ void UVCH264Cam::run()
         qDebug() << "this->identity3" << this->identity3;
         qDebug() << "this->fakesrc" << this->fakesrc;
         qDebug() << "this->queue_catch" << this->queue_catch;
+        qDebug() << "this->mainFakesink" << this->mainFakesink;
         return;
       }
     /* define video source caps */
@@ -446,6 +448,9 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
     if (blocked){
         qDebug() << " UVCH264Cam::swapBuffers()";
 
+
+        setenv("GST_DEBUG", "5", 1);
+
 //        GstPad* pad = gst_element_get_pad(cam->queue_0 , "src");
 //        gst_pad_set_blocked(pad, true);
 
@@ -510,14 +515,15 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_pad_fixate_caps(parsePad, parseCaps);
 
 
-        gst_element_set_locked_state (cam->queue_0, false);
-
-        /* syncronize clocks to avoid sync warnings/ potential problems */
-//        gst_bin_add(GST_BIN(cam->mainPipeline), cam->binRec2);
-        gst_element_set_state(cam->fakesink, GST_STATE_NULL);
         gst_bin_remove(GST_BIN(cam->catchPipeline), cam->fakesink);
+        gst_element_set_state(cam->fakesink, GST_STATE_NULL);
         gst_bin_add(GST_BIN(cam->mainPipeline), cam->fakesink);
         gst_element_set_state(cam->fakesink, GST_STATE_PLAYING);
+        gst_element_set_locked_state (cam->queue_0, false);
+
+
+        /* syncronize clocks to avoid sync warnings/ potential problems */
+//        gst_bin_add(GST_BIN(cam->mainPipeline), cam->binRec2);;
 //        gst_element_set_start_time(cam->mainPipeline, GstClockTime(0));
 
 
@@ -533,9 +539,9 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_pad_set_blocked (pad, false);
 
 
-        cam->capInspectCounter = 0;
-        pad = gst_element_get_pad(cam->mp4mux2, "src");
-        cam->save_id = gst_pad_add_buffer_probe (pad, GCallback(saveMeta), cam);
+//        cam->capInspectCounter = 0;
+//        pad = gst_element_get_pad(cam->mp4mux2, "src");
+//        cam->save_id = gst_pad_add_buffer_probe (pad, GCallback(saveMeta), cam);
 
         gst_element_set_clock(cam->binRec2, gst_element_get_clock(cam->mainPipeline));
 
@@ -548,9 +554,9 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         qDebug() << "====================================================================================================";
         qDebug() << "====================================================================================================";
 
-        gst_pad_set_blocked_async(pad, false, swapBuffers, cam);
         gst_object_unref(pad);
         qDebug() << "end of switch";
+        gst_pad_set_blocked_async(pad, false, swapBuffers, cam);
     }else{
 //        emit cam->changedLocation(cam->oldLocation);
     }

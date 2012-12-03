@@ -158,6 +158,7 @@ private:
     GstElement *queue_preview;
     GstElement *fakesrc;
     GstElement *fakesink;
+    GstElement *mainFakesink;
 
     GstCaps *h264Caps;
     GstCaps* negoCaps;
