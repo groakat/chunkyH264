@@ -507,12 +507,6 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 ////        gst_element_send_event(cam->binRec2, latEvent);
 ////        gst_pad_push_event(peer, latEvent);
 
-//        GstCaps* parseCaps =
-//             gst_caps_from_string
-//             ("video/x-h264, width=(int)1920, height=(int)1080, framerate=(fraction)30/1, pixel-aspect-ratio=(fraction)1/1, codec_data=(buffer)01640028ffe1002667640028ac7680780227e5c0512000000300200000078c080002dc6c000b71b7bdf0bc2211a801000468ee38b0");
-//        GstPad* parsePad = gst_element_get_pad(cam->ph264_2, "sink");
-////        gst_pad_set_caps(parsePad, parseCaps);
-//        gst_pad_fixate_caps(parsePad, parseCaps);
 
 
         gst_bin_remove(GST_BIN(cam->catchPipeline), cam->fakesink);
@@ -520,6 +514,12 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         gst_element_set_state(cam->binRec2, GST_STATE_NULL);
         gst_bin_add(GST_BIN(cam->mainPipeline), cam->binRec2);
         gst_element_set_state(cam->binRec2, GST_STATE_PLAYING);
+        GstCaps* parseCaps =
+             gst_caps_from_string
+             ("video/x-h264, width=(int)1920, height=(int)1080, framerate=(fraction)30/1, pixel-aspect-ratio=(fraction)1/1, codec_data=(buffer)01640028ffe1002667640028ac7680780227e5c0512000000300200000078c080002dc6c000b71b7bdf0bc2211a801000468ee38b0");
+        GstPad* parsePad = gst_element_get_pad(cam->ph264_2, "sink");
+        gst_pad_set_caps(parsePad, parseCaps);
+//        gst_pad_fixate_caps(parsePad, parseCaps);
         gst_element_set_locked_state (cam->queue_0, false);
 
 
