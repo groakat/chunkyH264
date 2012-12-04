@@ -11,6 +11,8 @@
 
 #include <gst/gst.h>
 #include <gst/gstpad.h>
+
+#include <string.h>
 //#include <gst/video/video.h>
 //#include <gstcollectpads2.h>
 
