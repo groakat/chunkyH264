@@ -467,6 +467,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         GstElement* newParser;
         GstElement* newFilesink;
         GstElement* queue;
+        GstElement* binQueue;
 
         if(cam->activeBuffer == 1){
             oldBinRec = cam->binRec1;
@@ -475,6 +476,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
             newParser = cam->ph264_2;
             newFilesink = cam->file_sink2;
             queue = cam->queue_0;
+            binQueue = cam->queue_2;
             cam->activeBuffer = 2;
         }else if(cam->activeBuffer == 2){
             oldBinRec = cam->binRec2;
@@ -483,6 +485,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
             newParser = cam->ph264_1;
             newFilesink = cam->file_sink1;
             queue = cam->queue_0;
+            binQueue = cam->queue_1;
             cam->activeBuffer = 1;
         }else{
             qWarning() << "UVCH264Cam::swapBuffers: activeBuffer out of range";
@@ -520,11 +523,11 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         gst_element_set_state(newBinRec, GST_STATE_PLAYING);
 
         qDebug() << "/* update caps */";
-        GstCaps* parseCaps =
-             gst_caps_from_string
-             ("video/x-h264, width=(int)1920, height=(int)1080, framerate=(fraction)30/1, pixel-aspect-ratio=(fraction)1/1, codec_data=(buffer)01640028ffe1002667640028ac7680780227e5c0512000000300200000078c080002dc6c000b71b7bdf0bc2211a801000468ee38b0");
-        GstPad* parsePad = gst_element_get_pad(newParser, "sink");
-        gst_pad_set_caps(parsePad, parseCaps);
+//        GstCaps* parseCaps =
+//             gst_caps_from_string
+//             ("video/x-h264, width=(int)1920, height=(int)1080, framerate=(fraction)30/1, pixel-aspect-ratio=(fraction)1/1, codec_data=(buffer)01640028ffe1002667640028ac7680780227e5c0512000000300200000078c080002dc6c000b71b7bdf0bc2211a801000468ee38b0");
+//        GstPad* parsePad = gst_element_get_pad(newParser, "sink");
+//        gst_pad_set_caps(parsePad, parseCaps);
 
         qDebug() << "/* unlock queue to enable passage of events */";
 //        gst_element_set_locked_state (queue, false);
@@ -572,7 +575,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_bin_iterate_elements(GST_BIN(cam->src));
 
         gst_element_send_event (cam->src,
-                gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+                gst_event_new_custom (GST_EVENT_CUSTOM_DOWNSTREAM,
                     gst_structure_new ("renegotiate", NULL)));
 
         event = gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, true, cam->keyFrameNumber++);
@@ -606,6 +609,10 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         cam->capInspectCounter = 0;
         GstPad* apad = gst_element_get_pad(newParser, "sink");
         cam->save_id = gst_pad_add_buffer_probe (apad, GCallback(saveMeta), cam);
+
+        GstPad* queuePad = gst_element_get_pad(binQueue, "sink");
+        cam->queueCounter = 0;
+        cam->queueCheckID = gst_pad_add_buffer_probe(queuePad, GCallback(dropFirstBuffer), cam);
 
         qDebug() << "end of switch";
         gst_pad_set_blocked_async(pad, false, swapBuffers, cam);
@@ -835,6 +842,22 @@ int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 
     qDebug() << "UVCH264Cam::saveMeta";
     return GST_PAD_PROBE_PASS;
+}
+
+int UVCH264Cam::dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_data)
+{
+    UVCH264Cam* cam = (UVCH264Cam*) user_data;
+
+    saveMeta(pad, buffer, user_data);
+
+    if(cam->queueCounter++ > 0){
+        gst_pad_remove_buffer_probe(pad, cam->queueCheckID);
+        qDebug() << "pass buffer";
+        return GST_PAD_PROBE_PASS;
+    }else{
+        qDebug() << "drop buffer";
+        return GST_PAD_PROBE_DROP;
+    }
 }
 
 bool UVCH264Cam::gstQueueHandler(GstBus *bus, GstMessage *msg, UVCH264Cam *cam)

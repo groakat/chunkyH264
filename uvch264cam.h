@@ -123,6 +123,7 @@ private:
 
     static int checkForKeyframes(GstPad *pad, GstBuffer *buffer, gpointer user_data);
     static int saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data);
+    static int dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_data);
     static bool gstQueueHandler(GstBus * bus, GstMessage * msg, UVCH264Cam* cam);
     static void handle_block_location(GstPad* pad, gboolean blocked, gpointer user_data);
 
@@ -185,8 +186,11 @@ private:
 
     int activeBuffer;
 
+    int queueCounter;
+
     ulong handler_id;
     ulong save_id;
+    ulong queueCheckID;
     bool changingLocation;
 };
 
