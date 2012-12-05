@@ -192,6 +192,8 @@ private:
     ulong save_id;
     ulong queueCheckID;
     bool changingLocation;
+
+    QByteArray byteHeader;
 };
 
 #endif // UVCH264CAM_H

@@ -789,11 +789,13 @@ int UVCH264Cam::checkForKeyframes(GstPad *pad, GstBuffer *buffer, gpointer user_
         gst_pad_remove_data_probe(pad, cam->handler_id);
         if(cam->inSwapingBuffers){
             /* copy meta data into new key frame */
-            QByteArray camHeader = QByteArray::fromHex("0000000167640028ac7680780227e5c0512000000300200000079c080002dc6c000b71b7bdf03c2211a80000000168ee38b0000000016588");
-            GstBuffer* newBuffer = gst_buffer_try_new_and_alloc(camHeader.size());
-            memcpy(GST_BUFFER_DATA(newBuffer), camHeader.data_ptr(), camHeader.size());
+//            QByteArray camHeader = QByteArray::fromHex("0000000167640028ac7680780227e5c0512000000300200000079c080002dc6c000b71b7bdf03c2211a80000000168ee38b0000000016588");
+//            GstBuffer* newBuffer = gst_buffer_try_new_and_alloc(camHeader.size());
+//            memcpy(GST_BUFFER_DATA(newBuffer), camHeader.data_ptr(), camHeader.size());
 //            gst_buffer_set_data(newBuffer, (guint8*) camHeader.data_ptr(), camHeader.size());
 
+            GstBuffer* newBuffer = gst_buffer_try_new_and_alloc(cam->byteHeader.size());
+            memcpy(GST_BUFFER_DATA(newBuffer), cam->byteHeader.data_ptr(), cam->byteHeader.size());
             buffer = gst_buffer_merge(newBuffer, buffer);
             gst_buffer_unref(newBuffer);
 
@@ -841,6 +843,14 @@ int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
     qDebug() << "raw data of the buffer: " << ba.toHex();
 
     qDebug() << "UVCH264Cam::saveMeta";
+
+    /* copy first 60 bytes of camera stream that are used to negotiate meta
+    /* data between 264parse and mp4mux */
+    if(cam->byteHeader.isEmpty()){
+        cam->byteHeader = QByteArray((char*)GST_BUFFER_DATA(buffer), 60);
+        qDebug() << "copied byteheader: " << cam->byteHeader.toHex();
+    }
+
     return GST_PAD_PROBE_PASS;
 }
 
