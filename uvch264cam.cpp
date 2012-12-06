@@ -182,6 +182,7 @@ void UVCH264Cam::run()
     h264Caps = gst_caps_new_simple ("video/x-h264",
          "width", G_TYPE_INT, 1920,
          "height", G_TYPE_INT, 1080,
+                                    "profile",  G_TYPE_STRING, "high",
          "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
 
     /* do element settings */
