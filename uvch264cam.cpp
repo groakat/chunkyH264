@@ -412,14 +412,14 @@ QString UVCH264Cam::updateCurrentFilename()
     int month = date.month();
     int year = date.year();
 
-    this->location = this->basedir + "/" + QString::number(year) + QString::number(month) + QString::number(day) + "/" + QString::number(time.time().hour());
+    this->location = this->basedir + QString("/%1%2%3/%4").arg(year).arg(month, 2, 10, QChar('0')).arg(day, 2, 10, QChar('0')).arg(time.time().hour(), 2, 10 ,QChar('0'));
 
     QDir dir(this->location);
     if(!dir.exists()){
         dir.mkpath(".");
     }
 
-    this->location += + "/minute_" + QString::number(time.time().minute()) + ".mp4";
+    this->location += "/" + QDateTime::currentDateTime().toString("yyyy-MM-dd.hh-mm-ss") + ".mp4";
 
     return this->location;
 
@@ -494,6 +494,8 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         qDebug() << "/* prepare new file sink and mp4mux */";
         //        gst_element_set_state(newBinRec, GST_STATE_NULL);
         cam->updateFilesink(newFilesink, newMp4mux);
+
+//        gst_element_set_state(cam->catchPipeline, GST_STATE_NULL);
 
         qDebug() << "/* preparing catch pipeline (set playing, load with EOS) */";
         GstPad* catchPad = gst_element_get_pad(cam->queue_catch, "src");
@@ -602,9 +604,6 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         qDebug() << "====================================================================================================";
 
         gst_object_unref(pad);
-
-//        "0000000167640028ac7680780227e5c0512000000300200000079c080002dc6c000b71b7bdf03c2211a80000000168ee38b0000000016588"
-
 
         cam->capInspectCounter = 0;
         GstPad* apad = gst_element_get_pad(newParser, "sink");
@@ -833,21 +832,21 @@ int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 //    cam->meta =    gst_buffer_copy(buffer);
 //    gst_buffer_copy_metadata (cam->meta, buffer, GST_BUFFER_COPY_ALL);
 
-    char* raw = (char *)GST_BUFFER_DATA (buffer);
-    int rawSize = GST_BUFFER_SIZE(buffer);
+//    char* raw = (char *)GST_BUFFER_DATA (buffer);
+//    int rawSize = GST_BUFFER_SIZE(buffer);
 
-    QByteArray ba = QByteArray();
-//    String* rawString = new String()
-    ba.setRawData(raw, rawSize);
+//    QByteArray ba = QByteArray();
+////    String* rawString = new String()
+//    ba.setRawData(raw, rawSize);
 
-    qDebug() << "raw data of the buffer: " << ba.toHex();
+//    qDebug() << "raw data of the buffer: " << ba.toHex();
 
     qDebug() << "UVCH264Cam::saveMeta";
 
     /* copy first 60 bytes of camera stream that are used to negotiate meta
     /* data between 264parse and mp4mux */
     if(cam->byteHeader.isEmpty()){
-        cam->byteHeader = QByteArray((char*)GST_BUFFER_DATA(buffer), 60);
+        cam->byteHeader = QByteArray((char*)GST_BUFFER_DATA(buffer), 56);
         qDebug() << "copied byteheader: " << cam->byteHeader.toHex();
     }
 
@@ -860,12 +859,22 @@ int UVCH264Cam::dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_da
 
     saveMeta(pad, buffer, user_data);
 
-    if(cam->queueCounter++ > 0){
+    QByteArray cmpArray((char*)GST_BUFFER_DATA(buffer), cam->byteHeader.size());
+
+    if(cmpArray == cam->byteHeader){
+        qDebug() << "both headers are the same!!";
         gst_pad_remove_buffer_probe(pad, cam->queueCheckID);
         qDebug() << "pass buffer";
         return GST_PAD_PROBE_PASS;
     }else{
+        qDebug() << "cmpArray: " << cmpArray.toHex();
+        qDebug() << "byteheader: " << cam->byteHeader.toHex();
         qDebug() << "drop buffer";
+//        GstBuffer* newBuffer;
+//        gst_buffer_copy_metadata(newBuffer, buffer, GST_BUFFER_COPY_ALL);
+//        gst_pad_push(gst_element_get_pad(cam->queue_catch, "sink"), gst_buffer_copy(buffer));
+//        GstEvent* event = gst_event_new_eos();
+//        gst_element_send_event(cam->queue_catch, event);
         return GST_PAD_PROBE_DROP;
     }
 }
