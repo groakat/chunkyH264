@@ -246,9 +246,11 @@ void MainWindow::setDay()
     this->ethRelay->switchOff(0);
     this->ethRelay->switchOn(1);
     if(this->cam != NULL){
-        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
+//        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus, auto\' false");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Exposure, Auto Priority\' false");
+        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'White Balance Temperature, Auto\' false");
+        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'White Balance Temperature\' 6500");
 //        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Exposure, Auto\' false");
 
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus (absolute)\' 100 ");
@@ -267,11 +269,13 @@ void MainWindow::setNight()
     this->ethRelay->switchOn(0);
     this->ethRelay->switchOn(1);
     if (this->cam != NULL){
-        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
+//        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus, auto\' false");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Exposure, Auto\' false");
+        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'White Balance Temperature, Auto\' false");
+        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'White Balance Temperature\' 6500");
 
-        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus (absolute)\' 135");// + ui->lineEdit_2->text();
+        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus (absolute)\' 130");// + ui->lineEdit_2->text();
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Exposure (Absolute)\' 98"); // + QString::number(value);
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Gain\' 0");
     }
