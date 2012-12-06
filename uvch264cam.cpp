@@ -185,7 +185,7 @@ void UVCH264Cam::run()
          "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
 
     /* do element settings */
-    g_object_set(this->src, "device", this->device.toStdString().c_str(), "auto-start", true, "initial-bitrate", 6000000, \
+    g_object_set(this->src, "device", this->device.toStdString().c_str(), "auto-start", true, "initial-bitrate", 12000000, \
                  "iframe-period", 1000, NULL);
     g_object_set(this->src, "async-handling", true, "message-forward", true, NULL);
     g_object_set(this->fakesrc, "is-live", true, "sync", true, NULL);
