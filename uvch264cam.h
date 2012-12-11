@@ -153,6 +153,12 @@ private:
     GstElement *ph264_1;
     GstElement *ph264_2;
     GstElement *ph264_3;
+    GstElement *audio1;
+    GstElement *audio2;
+    GstElement *audio3;
+    GstElement *aenc1;
+    GstElement *aenc2;
+    GstElement *aenc3;
     GstElement *os;
     GstElement *t;
     GstElement *vid_capsfilter;

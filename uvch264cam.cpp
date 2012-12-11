@@ -135,6 +135,12 @@ void UVCH264Cam::run()
     this->identity1 = gst_element_factory_make("identity", "identity_1");
     this->identity2 = gst_element_factory_make( "identity", "identity_2");
     this->identity3 = gst_element_factory_make( "identity", "identity_3");
+    this->audio1 = gst_element_factory_make( "audiotestsrc", "audio1");
+    this->audio2 = gst_element_factory_make( "audiotestsrc", "audio2");
+    this->audio3 = gst_element_factory_make( "audiotestsrc", "audio3");
+    this->aenc1 = gst_element_factory_make( "faac", "encodebin1");
+    this->aenc2 = gst_element_factory_make( "faac", "encodebin2");
+    this->aenc3 = gst_element_factory_make( "faac", "encodebin3");
 
     this->fakesrc = gst_element_factory_make( "fakesrc", "fakesrc");
     this->fakesink = gst_element_factory_make( "fakesink", "fakesink");
@@ -145,7 +151,8 @@ void UVCH264Cam::run()
 
     if (!src || !queue_preview || !preview_sink || !file_sink1 || !file_sink2 || !file_sink3 || !queue_0 ||
             !queue_1 || !queue_2 || !queue_3 || !mp4mux1|| !mp4mux2 || !mp4mux3 || !ph264_1 || !queue_catch ||
-            !ph264_2 || !ph264_3 || !identity1 || !identity2 || !identity3 || !fakesrc || !fakesink || !fakesink) {
+            !ph264_2 || !ph264_3 || !identity1 || !identity2 || !identity3 || !fakesrc || !fakesink || !fakesink ||
+            !audio1 || !audio2 || !audio3 || !aenc1 || !aenc2 || !aenc3) {
 
         g_printerr ("Not all elements could be created.\n");
         qDebug() << "this->src" << this->src;
@@ -170,6 +177,12 @@ void UVCH264Cam::run()
         qDebug() << "this->fakesrc" << this->fakesrc;
         qDebug() << "this->queue_catch" << this->queue_catch;
         qDebug() << "this->mainFakesink" << this->mainFakesink;
+        qDebug() << "this->audio1" << this->audio1;
+        qDebug() << "this->audio2" << this->audio2;
+        qDebug() << "this->audio3" << this->audio3;
+        qDebug() << "this->aenc1" << this->aenc1;
+        qDebug() << "this->aenc2" << this->aenc2;
+        qDebug() << "this->aenc3" << this->aenc3;
         return;
       }
     /* define video source caps */
@@ -199,6 +212,10 @@ void UVCH264Cam::run()
     g_object_set(this->mp4mux2, "moov-recovery-file", (recoverPath + "test").toStdString().c_str(),  "fragment-duration", 1000, NULL);
     g_object_set(this->mp4mux3, "moov-recovery-file", recoverPath.toStdString().c_str(),  "fragment-duration", 1000, NULL);
 
+    g_object_set(this->audio1, "wave", 4, NULL);
+    g_object_set(this->audio2, "wave", 4, NULL);
+    g_object_set(this->audio3, "wave", 4, NULL);
+
     /* set up bins and pipelines */
     this->mainPipeline = gst_pipeline_new("vidsrc pipeline");
     this->catchPipeline = gst_pipeline_new("catch pipeline");
@@ -208,9 +225,9 @@ void UVCH264Cam::run()
 
     gst_bin_add_many(GST_BIN(this->mainPipeline), this->src, this->queue_preview, this->preview_sink, this->queue_0, NULL);
     gst_bin_add_many(GST_BIN(this->catchPipeline), this->fakesrc, this->queue_catch, this->fakesink, NULL);
-    gst_bin_add_many(GST_BIN(this->binRec1), this->queue_1, this->ph264_1, this->mp4mux1, this->identity1, this->file_sink1, NULL);
-    gst_bin_add_many(GST_BIN(this->binRec2), this->queue_2, this->ph264_2, this->mp4mux2, this->identity2, this->file_sink2, NULL);
-    gst_bin_add_many(GST_BIN(this->binRec3), this->queue_3, this->ph264_3, this->mp4mux3, this->identity3, this->file_sink3, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec1), this->queue_1, this->ph264_1, this->mp4mux1, this->identity1, this->file_sink1, this->aenc1, this->audio1, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec2), this->queue_2, this->ph264_2, this->mp4mux2, this->identity2, this->file_sink2, this->aenc2, this->audio2, NULL);
+    gst_bin_add_many(GST_BIN(this->binRec3), this->queue_3, this->ph264_3, this->mp4mux3, this->identity3, this->file_sink3, this->aenc3, this->audio3, NULL);
 
 
     /* create pads for src and link them to connecting queues*/
@@ -224,6 +241,10 @@ void UVCH264Cam::run()
     gst_element_link_many(this->queue_1, this->ph264_1, this->mp4mux1, this->identity1, this->file_sink1, NULL);
     gst_element_link_many(this->queue_2, this->ph264_2, this->mp4mux2, this->identity2, this->file_sink2, NULL);
     gst_element_link_many(this->queue_3, this->ph264_3, this->mp4mux3, this->identity3, this->file_sink3, NULL);
+
+    gst_element_link_many(this->audio1, this->aenc1, this->mp4mux1);
+    gst_element_link_many(this->audio2, this->aenc2, this->mp4mux2);
+    gst_element_link_many(this->audio3, this->aenc3, this->mp4mux3);
 
     /* add ghost pads to rec bins */
     GstPad* pad = gst_element_get_static_pad (this->queue_1, "sink");
