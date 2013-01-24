@@ -9,6 +9,7 @@ QT       += core thread gui network
 TARGET = uvhCapture
 TEMPLATE = app
 
+#DEFINES     += QT_NO_DEBUG_OUTPUT
 
 SOURCES += main.cpp\
         mainwindow.cpp \

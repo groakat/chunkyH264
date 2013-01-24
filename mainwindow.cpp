@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     this->cam = NULL;
+    this->msecToUpdate = 60000; //10min for mem testing
 
 
     this->timer = new QTimer(this);
@@ -31,6 +32,7 @@ MainWindow::~MainWindow()
 {
     delete ui;
     this->cam->disconnect();
+    delete this->process;
 }
 
 void MainWindow::updateLight()
@@ -54,7 +56,7 @@ void MainWindow::newCamera()
         this->cam->changeDevice(this->ui->lineEdit_6->text());
         this->cam->start();
         QDateTime dt = QDateTime::currentDateTime();
-        timer->start(60000 - (dt.time().second()*1000 + dt.time().msec()));
+        timer->start(this->msecToUpdate - (dt.time().second()*1000 + dt.time().msec()));
         connect(this->cam, SIGNAL(finished()), this->cam, SLOT(deleteLater()));
         connect(this->cam, SIGNAL(finished()), this, SLOT(deleteCam()));
         connect(this->cam, SIGNAL(changedLocation(QString)), this, SLOT(checkProgress(QString)));
@@ -80,7 +82,7 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::updateFile()
 {
-    timer->start(60000);
+    timer->start(this->msecToUpdate);
 
 //    if(QTime::currentTime().minute() == 0){
 //        QFile log(this->baseDir + "/log.txt");

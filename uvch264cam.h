@@ -116,7 +116,7 @@ signals:
 
 private:
     QString updateCurrentFilename();
-    void updateFilesink(GstElement *filesink, GstElement *mp4mux);
+    void updateFilesinkLocation(GstElement *filesink, GstElement *mp4mux);
 
     static GstBusSyncReply gstPipelineHandler(GstBus *bus, GstMessage *msg, UVCH264Cam * cam);
     static void swapBuffers(GstPad * pad, gboolean blocked, gpointer user_data);

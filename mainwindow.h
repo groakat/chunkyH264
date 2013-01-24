@@ -84,6 +84,7 @@ private:
     QProcess* process;
     bool isCameraRestart;
     QString location;
+    int msecToUpdate;
 };
 
 #endif // MAINWINDOW_H
