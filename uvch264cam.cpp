@@ -515,7 +515,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_element_set_state(cam->catchPipeline, GST_STATE_NULL);
 
         qDebug() << "/* preparing catch pipeline (set playing, load with EOS) */";
-        GstPad* catchPad = gst_element_get_pad(cam->queue_catch, "src");
+//        GstPad* catchPad = gst_element_get_pad(cam->queue_catch, "src");
 //        gst_element_set_locked_state (cam->queue_catch, true);
 //        gst_element_set_locked_state (queue, true);
         gst_element_set_state(cam->catchPipeline, GST_STATE_PLAYING);
@@ -540,7 +540,8 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_pad_set_blocked(catchPad, false);
 //        gst_element_set_locked_state(cam->queue_catch, false);
         GstEvent* event = gst_event_new_eos();
-        gst_pad_push_event(catchPad, event);
+//        gst_pad_push_event(catchPad, event);
+        gst_element_send_event(cam->fakesrc, event);
 
         qDebug() << "/* prepare linking */";
         gst_element_set_state(newBinRec, GST_STATE_NULL);
