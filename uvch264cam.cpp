@@ -631,12 +631,15 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_object_unref(pad);
 
         cam->capInspectCounter = 0;
-        GstPad* apad = gst_element_get_pad(newParser, "sink");
+        GstPad* apad = gst_element_get_static_pad(newParser, "sink");
         cam->save_id = gst_pad_add_buffer_probe (apad, GCallback(saveMeta), cam);
 
-        GstPad* queuePad = gst_element_get_pad(binQueue, "sink");
+        GstPad* queuePad = gst_element_get_static_pad(binQueue, "sink");
         cam->queueCounter = 0;
         cam->queueCheckID = gst_pad_add_buffer_probe(queuePad, GCallback(dropFirstBuffer), cam);
+
+        gst_object_unref(apad);
+        gst_object_unref(queuePad);
 
         qDebug() << "end of switch";
         gst_pad_set_blocked_async(pad, false, swapBuffers, cam);
