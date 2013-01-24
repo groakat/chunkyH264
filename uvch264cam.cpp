@@ -44,6 +44,7 @@ UVCH264Cam::UVCH264Cam(QObject *parent = 0) : QThread(parent)
 
     this->handler_id = NULL;
     this->inSwapingBuffers = false;
+    this->negoCaps = NULL;
 }
 
 UVCH264Cam::~UVCH264Cam()
@@ -847,6 +848,9 @@ int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 
 //    qDebug() << "entering saveMeta for pad " << gst_element_get_name(gst_pad_get_parent_element(pad));
 
+    if (cam->negoCaps != NULL){
+        gst_caps_unref(cam->negoCaps);
+    }
     cam->negoCaps = gst_pad_get_caps_reffed(pad);
 //    qDebug() << "negotiated caps: " << gst_caps_to_string (cam->negoCaps);
 
@@ -881,11 +885,11 @@ int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 
 int UVCH264Cam::dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 {
+    qDebug() << "UVCH264Cam::dropFirstBuffer: entering function";
 
     UVCH264Cam* cam = (UVCH264Cam*) user_data;
 
-    QThread::msleep(1000);
-    qDebug() << "sleep over";
+    QThread::msleep(10);
 
     saveMeta(pad, buffer, user_data);
 
