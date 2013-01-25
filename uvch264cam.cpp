@@ -541,7 +541,9 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 //        gst_element_set_locked_state(cam->queue_catch, false);
         GstEvent* event = gst_event_new_eos();
 //        gst_pad_push_event(catchPad, event);
-        gst_element_send_event(cam->fakesrc, event);
+        gst_element_send_event(cam->queue_catch, event);
+
+        gst_event_unref(event);
 
         qDebug() << "/* prepare linking */";
         gst_element_set_state(newBinRec, GST_STATE_NULL);
@@ -639,8 +641,8 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
         cam->queueCounter = 0;
         cam->queueCheckID = gst_pad_add_buffer_probe(queuePad, GCallback(dropFirstBuffer), cam);
 
-        gst_object_unref(apad);
-        gst_object_unref(queuePad);
+        gst_object_unref(GST_OBJECT(apad));
+        gst_object_unref(GST_OBJECT(queuePad));
 
         qDebug() << "end of switch";
         gst_pad_set_blocked_async(pad, false, swapBuffers, cam);
@@ -833,8 +835,10 @@ int UVCH264Cam::checkForKeyframes(GstPad *pad, GstBuffer *buffer, gpointer user_
             /* in probes and guarantees that the async block will happen
             /* before the data arrives at the pad */
             cam->inSwapingBuffers = false;
-            GstPad* pad = gst_element_get_pad(cam->queue_0 , "src");
+//            GstPad* blockPad = gst_element_get_static_pad(cam->queue_0 , "src");
             gst_pad_set_blocked_async(pad, true, swapBuffers, cam);
+
+//            gst_object_unref(GST_OBJECT(blockPad));
         }
     }else{
         qDebug() << "skip non-keyframe";
