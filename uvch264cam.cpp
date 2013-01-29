@@ -633,15 +633,15 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 
 //        gst_object_unref(pad);
 
-        cam->capInspectCounter = 0;
-        GstPad* apad = gst_element_get_static_pad(newParser, "sink");
-        cam->save_id = gst_pad_add_buffer_probe (apad, GCallback(saveMeta), cam);
+//        cam->capInspectCounter = 0;
+//        GstPad* apad = gst_element_get_static_pad(newParser, "sink");
+//        cam->save_id = gst_pad_add_buffer_probe (apad, GCallback(saveMeta), cam);
 
         GstPad* queuePad = gst_element_get_static_pad(binQueue, "sink");
         cam->queueCounter = 0;
         cam->queueCheckID = gst_pad_add_buffer_probe(queuePad, GCallback(dropFirstBuffer), cam);
 
-        gst_object_unref(GST_OBJECT(apad));
+//        gst_object_unref(GST_OBJECT(apad));
         gst_object_unref(GST_OBJECT(queuePad));
 
         qDebug() << "end of switch";
@@ -649,6 +649,15 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
     }else{
 
         gst_element_set_state(cam->catchPipeline, GST_STATE_NULL);
+
+        if(cam->activeBuffer == 2){
+            gst_bin_remove(GST_BIN(cam->catchPipeline), cam->binRec1);
+            gst_object_unref(GST_OBJECT (cam->binRec1));
+        }else{
+            gst_bin_remove(GST_BIN(cam->catchPipeline), cam->binRec2);
+            gst_object_unref(GST_OBJECT (cam->binRec2));
+
+        }
 //        emit cam->changedLocation(cam->oldLocation);
 //        g_signal_emit_by_name (cam->src, "stop-capture", NULL);
 //        g_signal_emit_by_name (cam->src, "start-capture", NULL);
@@ -661,7 +670,7 @@ void UVCH264Cam::swapBuffers(GstPad* pad, gboolean blocked, gpointer user_data)
 
 GstBusSyncReply UVCH264Cam::gstPipelineHandler(GstBus *bus, GstMessage *msg, UVCH264Cam * cam)
 {
-//    qDebug() << "UVCH264Cam::gstPipelineHandler";
+    qDebug() << "UVCH264Cam::gstPipelineHandler" << msg;
     /* Parse message */
      if (msg != NULL) {
         GError *err;
@@ -805,7 +814,7 @@ GstBusSyncReply UVCH264Cam::gstPipelineHandler(GstBus *bus, GstMessage *msg, UVC
            g_printerr ("Unexpected message received.\n");
            break;
        }
-//       gst_message_unref (msg);
+       gst_message_unref (msg);
      }
      return GST_BUS_DROP;
 }
@@ -850,16 +859,16 @@ int UVCH264Cam::checkForKeyframes(GstPad *pad, GstBuffer *buffer, gpointer user_
 int UVCH264Cam::saveMeta(GstPad *pad, GstBuffer *buffer, gpointer user_data)
 {
     UVCH264Cam* cam = (UVCH264Cam*)user_data;
-    if(cam->capInspectCounter++ > 2){
+//    if(cam->capInspectCounter++ > 2){
         gst_pad_remove_data_probe(pad, cam->save_id);
-    }
+//    }
 
 //    qDebug() << "entering saveMeta for pad " << gst_element_get_name(gst_pad_get_parent_element(pad));
 
-    if (cam->negoCaps != NULL){
-        gst_caps_unref(cam->negoCaps);
-    }
-    cam->negoCaps = gst_pad_get_caps_reffed(pad);
+//    if (cam->negoCaps != NULL){
+//        gst_caps_unref(cam->negoCaps);
+//    }
+//    cam->negoCaps = gst_pad_get_caps_reffed(pad);
 //    qDebug() << "negotiated caps: " << gst_caps_to_string (cam->negoCaps);
 
 //    qDebug() << "caps on the pad: " << gst_caps_to_string(GST_PAD_CAPS(pad));
@@ -899,7 +908,7 @@ int UVCH264Cam::dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_da
 
     QThread::msleep(10);
 
-    saveMeta(pad, buffer, user_data);
+//    saveMeta(pad, buffer, user_data);
 
     QByteArray cmpArray((char*)GST_BUFFER_DATA(buffer), cam->byteHeader.size());
 
@@ -914,7 +923,7 @@ int UVCH264Cam::dropFirstBuffer(GstPad *pad, GstBuffer *buffer, gpointer user_da
         qDebug() << "cmpArray: " << cmpArray.toHex();
         qDebug() << "byteheader: " << cam->byteHeader.toHex();
         qDebug() << "drop buffer";
-        gst_buffer_unref(buffer);
+//        gst_buffer_unref(buffer);
 //        GstBuffer* newBuffer;
 //        gst_buffer_copy_metadata(newBuffer, buffer, GST_BUFFER_COPY_ALL);
 //        gst_pad_push(gst_element_get_pad(cam->queue_catch, "sink"), gst_buffer_copy(buffer));

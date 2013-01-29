@@ -71,6 +71,22 @@ public slots:
     void switchLightOn();
     void switchLightOff();
 
+
+
+    void setBaseDir(QString path);
+
+    void setDevice(QString device);
+
+    void setIsMaster(bool isMaster);
+
+    void setRelays(int relayDay, int relayNight);
+
+    void setRelayDay(int relayDay);
+
+    void setRelayNight(int relayNight);
+
+    void setDirectStart(bool directStart);
+
     void sendSystemCmd(QString cmd);
 
     void checkProgress(QString oldLocation);
@@ -80,11 +96,18 @@ private:
     UVCH264Cam* cam;
     EthRelay* ethRelay;
     QTimer* timer;
-    QString baseDir;
     QProcess* process;
     bool isCameraRestart;
     QString location;
     int msecToUpdate;
+
+    // basic input parameters
+    QString baseDir;
+    QString device;
+    bool isMaster;
+    int relayDay;
+    int relayNight;
+    bool directStart;
 };
 
 #endif // MAINWINDOW_H

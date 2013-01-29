@@ -7,8 +7,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 
-
-
     this->cam = NULL;
     this->msecToUpdate = 60000; //10min for mem testing
 
@@ -25,6 +23,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     this->baseDir = ui->lineEdit->text(); //"/mnt/raid/box0/";
+    this->device = ui->lineEdit_6->text();
+
+    this->relayNight = 0;
+    this->relayDay = 1;
+
+    this->isMaster = true;
 
 }
 
@@ -52,8 +56,8 @@ void MainWindow::newCamera()
 {
     if(!this->cam){
         this->cam = new UVCH264Cam(this);
-        this->cam->changeBaseDir(this->ui->lineEdit->text());
-        this->cam->changeDevice(this->ui->lineEdit_6->text());
+        this->cam->changeBaseDir(this->baseDir);
+        this->cam->changeDevice(this->device);
         this->cam->start();
         QDateTime dt = QDateTime::currentDateTime();
         timer->start(this->msecToUpdate - (dt.time().second()*1000 + dt.time().msec()));
@@ -245,8 +249,8 @@ void MainWindow::deleteCam()
 void MainWindow::setDay()
 {
     qDebug() << "setDay()";;
-    this->ethRelay->switchOff(0);
-    this->ethRelay->switchOn(1);
+    this->ethRelay->switchOff(this->relayNight);
+    this->ethRelay->switchOn(this->relayDay);
     if(this->cam != NULL){
 //        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus, auto\' false");
@@ -268,8 +272,8 @@ void MainWindow::setDay()
 void MainWindow::setNight()
 {
     qDebug() << "setNight";
-    this->ethRelay->switchOn(0);
-    this->ethRelay->switchOn(1);
+    this->ethRelay->switchOff(relayDay);
+    this->ethRelay->switchOn(relayNight);
     if (this->cam != NULL){
 //        sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Saturation\' 0");
         sendSystemCmd("uvcdynctrl -d " + this->ui->lineEdit_6->text() + " -s \'Focus, auto\' false");
@@ -322,5 +326,50 @@ void MainWindow::on_checkBox_4_toggled(bool checked)
         this->ethRelay->switchOn(1);
     }else{
         this->ethRelay->switchOff(1);
+    }
+}
+
+void MainWindow::setBaseDir(QString path)
+{
+    this->baseDir = path;
+    qDebug() << "MainWindow::setBaseDir " << path;
+}
+
+void MainWindow::setDevice(QString device)
+{
+    this->device = device;
+    qDebug() << "MainWindow::setDevice " << device;
+}
+
+void MainWindow::setIsMaster(bool isMaster)
+{
+    this->isMaster = isMaster;
+    qDebug() << "MainWindow::setIsMaster " << isMaster;
+}
+
+void MainWindow::setRelays(int relayDay, int relayNight)
+{
+    this->relayDay = relayDay;
+    this->relayNight = relayNight;
+}
+
+void MainWindow::setRelayDay(int relayDay)
+{
+    this->relayDay = relayDay;
+    qDebug() << "MainWindow::setRelayDay " << relayDay;
+}
+
+void MainWindow::setRelayNight(int relayNight)
+{
+    this->relayNight = relayNight;
+    qDebug() << "MainWindow::setRelayNight " << relayNight;
+}
+
+void MainWindow::setDirectStart(bool directStart)
+{
+    this->directStart = directStart;
+    qDebug() << "MainWindow::setDirectStart " << directStart;
+    if(directStart){
+        this->on_pushButton_clicked();
     }
 }
