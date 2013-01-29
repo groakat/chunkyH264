@@ -25,10 +25,12 @@ example:
 
 Compiling gstreamer-0.10 from git repository for UCVH264_src
 ------------------------------------------------------------
+<pre>
 git clone git://anongit.freedesktop.org/gstreamer/gst-plugins-bad
 git checkout /origin/0.10
 ./autogen.sh
 make
+</pre>
 
 UVC Settings (e.g. focus, saturation, etc.)
 -------------------------------------------
