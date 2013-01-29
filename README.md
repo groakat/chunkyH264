@@ -23,6 +23,18 @@ example:
 </pre>
 
 
+Compiling gstreamer-0.10 from git repository for UCVH264_src
+------------------------------------------------------------
+git clone git://anongit.freedesktop.org/gstreamer/gst-plugins-bad
+git checkout /origin/0.10
+./autogen.sh
+make
+
+UVC Settings (e.g. focus, saturation, etc.)
+-------------------------------------------
+I am using uvcdynctrl
+if it is not installed, the program will still run
+
 Setup of .pro file
 ------------------
 As I am linking to custom build gstreamer 0.10 libraries, you will have to adjust the include path in the .pro file
