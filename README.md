@@ -27,8 +27,12 @@ Compiling gstreamer-0.10 from git repository for UCVH264_src
 ------------------------------------------------------------
 <pre>
 git clone git://anongit.freedesktop.org/gstreamer/gst-plugins-bad
-git checkout /origin/0.10
+git checkout -b origin/0.10 remotes/origin/0.10
 ./autogen.sh
+</pre>
+make sure that uvch264 will be installed (if not, install missing libraries gudev-devel and libgusb-devel in my case)
+
+<pre>
 make
 </pre>
 
